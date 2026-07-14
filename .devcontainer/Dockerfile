@@ -1,47 +1,31 @@
 FROM ubuntu:26.04
 
 # Update the package database
-RUN apt-get clean
-RUN apt-get update
+RUN apt clean
+RUN apt update
 
 # Install common tools
-RUN apt-get update && apt-get install --no-install-recommends --assume-yes \
-        curl wget gpg software-properties-common \
-        git cmake ninja-build pkg-config         \
-        python3-minimal python3-pip pipx         \
-        gdb valgrind cppcheck                    \
-        less vim sudo                            \
-        libegl-dev libegl1-mesa-dev libudev-dev  \
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+RUN apt install -y python3-minimal python3-pip pipx git less vim sudo cmake make ninja-build g++-15 clang-format clangd-22
+
+# GUI
+RUN apt install -y libsdl3-dev
+
+# Tests
+RUN apt install -y libgtest-dev
+
+# Benchmarks
+RUN apt install -y libbenchmark-dev
+
+# Cleanup
+RUN apt autoremove -y \
+    && apt autoclean \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /var/cache/apt/* \
+    && rm -rf /tmp/*
 
 # Update  gcc/g++ version to the latest ones
 RUN ln -fs /usr/bin/g++-15 /usr/bin/g++
 RUN ln -fs /usr/bin/gcc-15 /usr/bin/gcc
-
-# LLVM 22
-ARG LLVM_VERSION=22
- 
-RUN apt-get update && apt-get install --no-install-recommends --assume-yes \
-        clang-${LLVM_VERSION}           \
-        clangd-${LLVM_VERSION}          \
-        clang-tidy-${LLVM_VERSION}      \
-        clang-format-${LLVM_VERSION}    \
-        lld-${LLVM_VERSION}             \
-        lldb-${LLVM_VERSION}            \
-        libc++-${LLVM_VERSION}-dev      \
-        libc++abi-${LLVM_VERSION}-dev   \
-        libclang-rt-${LLVM_VERSION}-dev \
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
- 
-RUN ln -s /usr/bin/clang-${LLVM_VERSION}           /usr/bin/clang        \
-    && ln -s /usr/bin/clang++-${LLVM_VERSION}      /usr/bin/clang++      \
-    && ln -s /usr/bin/clang-format-${LLVM_VERSION} /usr/bin/clang-format \
-    && ln -s /usr/bin/clang-tidy-${LLVM_VERSION}   /usr/bin/clang-tidy   \
-    && ln -s /usr/bin/clangd-${LLVM_VERSION}       /usr/bin/clangd
-
-ENV PATH="/usr/lib/llvm-${LLVM_VERSION}/bin:${PATH}" \
-    LD_LIBRARY_PATH="/usr/lib/llvm-${LLVM_VERSION}/lib"
-
 
 ARG USERNAME=dev
 ARG USER_UID
