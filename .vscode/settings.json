@@ -2,5 +2,9 @@
     "files.eol": "\n",
     "editor.formatOnSave": true,
     "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd",
-    "clangd.path": "/usr/bin/clangd-22"
+    "clangd.path": "/usr/bin/clangd-22",
+    "clangd.arguments": [
+        "--compile-commands-dir=${workspaceFolder}/build/debug",
+        "--query-driver=/usr/bin/g++-15,/usr/bin/gcc-15"
+    ]
 }
