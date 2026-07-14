@@ -56,8 +56,27 @@ FetchContent_Declare(nlohmann_json
 )
 FetchContent_MakeAvailable(nlohmann_json)
 
+# main lib
+add_library(trafficsim_lib STATIC
+    src/core/road_graph.cpp
+    src/core/idm.cpp
+    src/core/sim_engine.cpp
+    src/core/traffic_rules.cpp
+    src/core/vehicle_params.cpp
+    src/concurrency/thread_pool.cpp
+    src/concurrency/work_queue.cpp
+    src/render/renderer.cpp
+    src/render/camera.cpp
+    src/render/editor_ui.cpp
+    src/render/debug_overlay.cpp
+    src/map_io/map_serializer.cpp
+)
+target_include_directories(trafficsim_lib PUBLIC include)
+
+
 # main executable
-add_executable(trafficsim src/main.cpp)
+add_executable(trafficsim src/app/main.cpp)
+target_link_libraries(trafficsim PRIVATE trafficsim_lib)
 
 target_link_libraries(trafficsim PRIVATE
     SDL3::SDL3
@@ -66,12 +85,14 @@ target_link_libraries(trafficsim PRIVATE
 )
 
 # tests
-include(CTest)
-enable_testing()
-
-add_executable(tests 
+add_executable(tests
     tests/main_test.cpp
     tests/test_vec2.cpp
     tests/test_vehicle.cpp
-    )
-target_link_libraries(tests PRIVATE GTest::gtest_main)
+)
+target_link_libraries(tests PRIVATE trafficsim_lib GTest::gtest_main)
+
+include(CTest)
+enable_testing()
+
+gtest_discover_tests(tests)
