@@ -6,7 +6,8 @@
 
 #include <print>
 
-int main(int /*argc*/, char** /*argv*/) {
+int main(int /*argc*/, char** /*argv*/)
+{
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         std::println("SDL_Init: {}\n", SDL_GetError());
         return 1;
@@ -51,5 +52,6 @@ int main(int /*argc*/, char** /*argv*/) {
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
+
     return 0;
 }

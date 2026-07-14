@@ -14,3 +14,4 @@ Cpp11BracedListStyle: true
 AlwaysBreakTemplateDeclarations: true
 PointerAlignment: Left
 SortIncludes: CaseSensitive
+BreakBeforeBraces: Stroustrup
