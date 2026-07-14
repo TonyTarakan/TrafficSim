@@ -18,7 +18,8 @@
         "vadimcn.vscode-lldb",
         "matepek.vscode-catch2-test-adapter",
         "streetsidesoftware.code-spell-checker",
-        "streetsidesoftware.code-spell-checker-russian"
+        "streetsidesoftware.code-spell-checker-russian",
+        "mhutchie.git-graph"
       ]
     }
   },
