@@ -7,7 +7,7 @@ RUN apt-get clean && apt-get update
 # Common tools and compilers
 RUN apt-get install -y --no-install-recommends \
     python3-minimal python3-pip pipx \
-    git less vim sudo curl wget \
+    git openssh-client less vim sudo curl wget \
     cmake make ninja-build \
     g++-15 \
     clang-format-22 clangd-22 \
