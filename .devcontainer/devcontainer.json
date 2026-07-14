@@ -1,25 +1,32 @@
 {
-  "name": "trafficsim",
-  "build": { "dockerfile": "Dockerfile" },
-  "runArgs": ["--network=host"],
-  "mounts": [
-    "source=trafficsim-conan-cache,target=/root/.conan2,type=volume"
-  ],
+  "name": "TrafficSimDev",
+  "build": {
+      "dockerfile": "./Dockerfile",
+      "context": ".",
+      "args": {
+        "USER_UID": "${localEnv:USER_UID}",
+        "USER_GID": "${localEnv:USER_GID}"
+      }
+  },
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+  "remoteUser": "dev",
+  "postStartCommand": "conan profile detect || true",
   "customizations": {
     "vscode": {
       "extensions": [
-        "ms-vscode.cpptools",
-        "ms-vscode.cmake-tools",
         "llvm-vs-code-extensions.vscode-clangd",
-        "xaver.clang-format"
-      ],
-      "settings": {
-        "cmake.generator": "Ninja",
-        "cmake.configurePreset": "debug",
-        "editor.formatOnSave": true,
-        "C_Cpp.intelliSenseEngine": "disabled"
-      }
+        "vadimcn.vscode-lldb",
+        "ms-vscode.cmake-tools",
+        "streetsidesoftware.code-spell-checker-russian",
+        "streetsidesoftware.code-spell-checker",
+        "matepek.vscode-catch2-test-adapter",
+        "mhutchie.git-graph"
+      ]
     }
   },
-  "postCreateCommand": "cd /workspace && conan install . --build=missing -s build_type=Debug"
+  "mounts": [
+    "source=${env:HOME}/.gitconfig,target=/home/dev/.gitconfig,type=bind,consistency=cached",
+    "source=${env:HOME}/.conan2,target=/home/dev/.conan2,type=bind,consistency=cached"
+  ],
+  "postCreateCommand": "bash .devcontainer/bootstrap.sh"
 }

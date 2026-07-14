@@ -7,11 +7,16 @@ class TrafficSim(ConanFile):
     generators = "CMakeToolchain", "CMakeDeps"
 
     def requirements(self):
-        self.requires("sdl/3.2.10")
-        self.requires("imgui/1.91.9-docking")
-        self.requires("nlohmann_json/3.11.3")
-        self.requires("gtest/1.15.0")
-        self.requires("benchmark/1.9.1")
+        self.requires("sdl/3.4.8")
+        self.requires("imgui/1.92.8")
+        self.requires("nlohmann_json/3.12.0")
+        self.requires("gtest/1.17.0")
+        self.requires("benchmark/1.9.5")
+        self.requires("quill/12.0.0")
 
     def layout(self):
-        cmake_layout(self)
+        # build_type берётся из -s build_type=Debug|Release и т.д.
+        # папка будет build/debug, build/release — совпадает с binaryDir в пресетах
+        bt = str(self.settings.build_type).lower()
+        self.folders.build = f"build/{bt}"
+        self.folders.generators = f"build/{bt}/generators"

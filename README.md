@@ -1,10 +1,10 @@
-# trafficsim
+# TrafficSim
 
 C++23 traffic simulation. Work in progress.
 
 ## Quick start (devcontainer)
 
-Open in VS Code → **Reopen in Container** → You're ready.
+Open in VS Code → **Reopen in Container** → Ready to GO.
 
 ## Manual build
 
