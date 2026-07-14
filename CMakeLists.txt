@@ -4,22 +4,22 @@ project(trafficsim LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# ── sanitizers ────────────────────────────────────────────────────────────────
+# sanitizers
 if(TS_SANITIZE)
     add_compile_options(-fsanitize=${TS_SANITIZE} -fno-omit-frame-pointer)
     add_link_options   (-fsanitize=${TS_SANITIZE})
 endif()
 
-# ── warnings ──────────────────────────────────────────────────────────────────
+# warnings
 add_compile_options(-Wall -Wextra -Wpedantic)
 
-# ── deps ____________________──────────────────────────────────────────────────
+# deps
 find_package(SDL3          REQUIRED)
 
 find_package(GTest         REQUIRED)
 find_package(benchmark     REQUIRED)
 
-# ── imgui и nlohmann json через FetchContent ───────────────────────────────────
+# imgui and nlohmann json (workaround)
 include(FetchContent)
  
 FetchContent_Declare(imgui
@@ -29,7 +29,6 @@ FetchContent_Declare(imgui
 )
 FetchContent_MakeAvailable(imgui)
  
-# imgui не имеет CMakeLists.txt — собираем вручную
 add_library(imgui STATIC
     ${imgui_SOURCE_DIR}/imgui.cpp
     ${imgui_SOURCE_DIR}/imgui_draw.cpp
@@ -44,7 +43,6 @@ target_include_directories(imgui PUBLIC
 )
 target_link_libraries(imgui PUBLIC SDL3::SDL3)
 
-
 FetchContent_Declare(nlohmann_json
     GIT_REPOSITORY https://github.com/nlohmann/json.git
     GIT_TAG        v3.12.0
@@ -52,7 +50,7 @@ FetchContent_Declare(nlohmann_json
 )
 FetchContent_MakeAvailable(nlohmann_json)
 
-# ── main executable ───────────────────────────────────────────────────────────
+# main executable
 add_executable(trafficsim src/main.cpp)
 
 target_link_libraries(trafficsim PRIVATE
@@ -61,7 +59,7 @@ target_link_libraries(trafficsim PRIVATE
     nlohmann_json::nlohmann_json
 )
 
-# ── tests ─────────────────────────────────────────────────────────────────────
+# tests
 enable_testing()
 
 add_executable(tests tests/main_test.cpp)

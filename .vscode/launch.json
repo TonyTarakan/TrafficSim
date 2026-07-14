@@ -7,11 +7,21 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Launch queue tests",
-            "program": "${workspaceFolder}/build/trafficsim",
+            "name": "Launch trafficsim (debug)",
+            "program": "${workspaceFolder}/build/debug/trafficsim",
             "args": [],
-            "cwd": "${workspaceFolder}/build",
-            "preLaunchTask": "GCC: Build Debug",
+            "cwd": "${workspaceFolder}/build/debug",
+            "preLaunchTask": "CMake: Build (debug)",
+            "initCommands": ["settings set target.disable-aslr false"]
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Launch tests (debug)",
+            "program": "${workspaceFolder}/build/debug/tests",
+            "args": [],
+            "cwd": "${workspaceFolder}/build/debug",
+            "preLaunchTask": "CMake: Build (debug)",
             "initCommands": ["settings set target.disable-aslr false"]
         }
     ]

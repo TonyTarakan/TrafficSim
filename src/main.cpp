@@ -4,11 +4,11 @@
 #include <imgui_impl_sdl3.h>
 #include <imgui_impl_sdlrenderer3.h>
 
-#include <cstdio>
+#include <print>
 
 int main(int /*argc*/, char ** /*argv*/) {
   if (!SDL_Init(SDL_INIT_VIDEO)) {
-    std::printf("SDL_Init: %s\n", SDL_GetError());
+    std::println("SDL_Init: {}\n", SDL_GetError());
     return 1;
   }
 

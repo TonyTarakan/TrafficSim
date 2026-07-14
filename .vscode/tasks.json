@@ -2,36 +2,38 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "GCC: Build Debug",
+            "label": "CMake: Configure (debug)",
             "type": "shell",
-            "command": [
-                "mkdir ${workspaceFolder}/build ; ",
-                "cd ${workspaceFolder}/build &&",
-                "cmake .. -DCMAKE_BUILD_TYPE=Debug && cmake --build ."
-            ],
-            "presentation": {
-                "clear": true
-            },
-            "hide": false,
-            "group": {
-                "kind": "build"
-            }
+            "command": "cmake --preset debug",
+            "options": { "cwd": "${workspaceFolder}" },
+            "presentation": { "clear": true },
+            "group": "build"
         },
         {
-            "label": "GCC: Build Release",
+            "label": "CMake: Build (debug)",
             "type": "shell",
-            "command": [
-                "mkdir ${workspaceFolder}/build ; ",
-                "cd ${workspaceFolder}/build &&",
-                "cmake .. -DCMAKE_BUILD_TYPE=Release && cmake --build ."
-            ],
-            "presentation": {
-                "clear": true
-            },
-            "hide": false,
-            "group": {
-                "kind": "build"
-            }
+            "command": "cmake --build --preset debug",
+            "options": { "cwd": "${workspaceFolder}" },
+            "presentation": { "clear": true },
+            "group": { "kind": "build", "isDefault": true },
+            "dependsOn": ["CMake: Configure (debug)"]
+        },
+        {
+            "label": "CMake: Build (release)",
+            "type": "shell",
+            "command": "cmake --preset release && cmake --build --preset release",
+            "options": { "cwd": "${workspaceFolder}" },
+            "presentation": { "clear": true },
+            "group": "build"
+        },
+        {
+            "label": "CTest: Run tests (debug)",
+            "type": "shell",
+            "command": "ctest --preset debug",
+            "options": { "cwd": "${workspaceFolder}" },
+            "presentation": { "clear": true },
+            "group": { "kind": "test", "isDefault": true },
+            "dependsOn": ["CMake: Build (debug)"]
         }
     ]
 }
