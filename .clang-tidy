@@ -1,0 +1,10 @@
+Checks: >
+  clang-diagnostic-*,
+  clang-analyzer-*,
+  modernize-*,
+  performance-*,
+  concurrency-*,
+  -modernize-use-trailing-return-type
+
+WarningsAsErrors: ""
+HeaderFilterRegex: "src/.*"

@@ -1,0 +1,25 @@
+{
+  "name": "trafficsim",
+  "build": { "dockerfile": "Dockerfile" },
+  "runArgs": ["--network=host"],
+  "mounts": [
+    "source=trafficsim-conan-cache,target=/root/.conan2,type=volume"
+  ],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.cpptools",
+        "ms-vscode.cmake-tools",
+        "llvm-vs-code-extensions.vscode-clangd",
+        "xaver.clang-format"
+      ],
+      "settings": {
+        "cmake.generator": "Ninja",
+        "cmake.configurePreset": "debug",
+        "editor.formatOnSave": true,
+        "C_Cpp.intelliSenseEngine": "disabled"
+      }
+    }
+  },
+  "postCreateCommand": "cd /workspace && conan install . --build=missing -s build_type=Debug"
+}
