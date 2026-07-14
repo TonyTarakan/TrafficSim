@@ -3,6 +3,12 @@ project(trafficsim LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+include_directories(
+    ${CMAKE_SOURCE_DIR}/include
+)
 
 # sanitizers
 if(TS_SANITIZE)
@@ -60,10 +66,12 @@ target_link_libraries(trafficsim PRIVATE
 )
 
 # tests
+include(CTest)
 enable_testing()
 
-add_executable(tests tests/main_test.cpp)
+add_executable(tests 
+    tests/main_test.cpp
+    tests/test_vec2.cpp
+    tests/test_vehicle.cpp
+    )
 target_link_libraries(tests PRIVATE GTest::gtest_main)
-
-include(GoogleTest)
-gtest_discover_tests(tests)
