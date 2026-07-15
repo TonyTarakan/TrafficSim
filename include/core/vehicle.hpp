@@ -27,13 +27,11 @@ struct Vehicle {
     Vec2 position{};
     float speed{0.f};  // m/s, always >= 0
 
-    // Which road segment this vehicle is on, and which parallel sub-lane
-    // within that segment (0 = rightmost). A Lane with num_sublanes > 1
-    // is treated as several independent traffic streams for IDM purposes;
-    // lane-changing moves a vehicle between sublane_idx values on the
-    // same lane_id. See core/lane_change.hpp for the MOBIL model that
-    // will decide when this happens.
+    // Which road segment the vehicle is on
     LaneId lane_id{};
+    // Parallel sub-lane within the segment (0 = rightmost).
+    // MOBIL works between them
+    // IDM works per sublane
     std::uint8_t sublane_idx{0};
 };
 

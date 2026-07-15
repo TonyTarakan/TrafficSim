@@ -1,5 +1,29 @@
-namespace ts {
+#include "core/idm.hpp"
 
-// TODO: implementation
+#include <algorithm>
+#include <cmath>
 
-}  // namespace ts
+namespace ts::idm {
+
+float acceleration(const VehicleParams& p, float curr_speed, std::optional<LeaderInfo> leader) noexcept
+{
+    const float speed_ratio = curr_speed / p.desired_speed;
+    const float free_road_cf = 1.f - std::pow(speed_ratio, 4.0f);
+
+    if (!leader) {
+        return p.max_accel * free_road_cf;
+    }
+
+    // Avoid division by zero if two vehicles are (almost) touching.
+    const float gap = std::max(leader->gap, 0.001f);
+    const float dv = leader->dv;
+
+    const float sqrt_amb = std::sqrt(p.max_accel * p.comfy_decel);
+    const float s_star = p.min_gap + p.time_headway * curr_speed + (curr_speed * dv) / (2.f * sqrt_amb);
+
+    const float interaction_cf = std::pow((s_star / gap), 2.0f);
+
+    return p.max_accel * (free_road_cf - interaction_cf);
+}
+
+}  // namespace ts::idm
