@@ -2,16 +2,16 @@
 
 namespace ts {
 
-struct Vec2 {
+struct Vec2D {
     float x{};
     float y{};
 
-    Vec2 operator+(Vec2 o) const noexcept { return {.x = x + o.x, .y = y + o.y}; }
-    Vec2 operator-(Vec2 o) const noexcept { return {.x = x - o.x, .y = y - o.y}; }
-    Vec2 operator*(float s) const noexcept { return {.x = x * s, .y = y * s}; }
+    Vec2D operator+(Vec2D other) const noexcept { return {.x = x + other.x, .y = y + other.y}; }
+    Vec2D operator-(Vec2D other) const noexcept { return {.x = x - other.x, .y = y - other.y}; }
+    Vec2D operator*(float s) const noexcept { return {.x = x * s, .y = y * s}; }
 
-    [[nodiscard]] float dot(Vec2 o) const noexcept { return x * o.x + y * o.y; }
-    [[nodiscard]] float length_sq() const noexcept { return dot(*this); }
+    [[nodiscard]] float dot_prod(Vec2D other) const noexcept { return x * other.x + y * other.y; }
+    [[nodiscard]] float length_sq() const noexcept { return dot_prod(*this); }
 };
 
 }  // namespace ts

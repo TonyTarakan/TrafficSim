@@ -90,6 +90,7 @@ add_executable(tests
     tests/test_vec2.cpp
     tests/test_vehicle.cpp
     tests/test_idm.cpp
+    tests/test_road_graph.cpp
 )
 target_link_libraries(tests PRIVATE trafficsim_lib GTest::gtest_main)
 

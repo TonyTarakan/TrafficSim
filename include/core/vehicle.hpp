@@ -24,7 +24,7 @@ struct Vehicle {
     VehicleId id{};
     VehicleType type{VehicleType::Car};
 
-    Vec2 position{};
+    Vec2D position{};
     float speed{0.f};  // m/s, always >= 0
 
     // Which road segment the vehicle is on

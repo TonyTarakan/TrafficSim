@@ -5,7 +5,7 @@
 using namespace ts::idm;
 
 // clang-format off
-constexpr VehicleParams TEST_DEFAULT{
+constexpr VehicleParams kTestDefault{
     .desired_speed = 13.9f, 
     .max_accel = 2.0f, 
     .comfy_decel = 3.0f,
@@ -16,7 +16,7 @@ constexpr VehicleParams TEST_DEFAULT{
 
 TEST(Idm, StationaryVehicleAccelerates)
 {
-    VehicleParams p = TEST_DEFAULT;
+    VehicleParams p = kTestDefault;
     float a = acceleration(p, 0.f);
     EXPECT_GT(a, 0.f);
     EXPECT_LE(a, p.max_accel + 0.01f);
