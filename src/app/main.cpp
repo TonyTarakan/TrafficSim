@@ -6,6 +6,15 @@
 
 #include <print>
 
+//
+// Generic TODOs:
+//
+// - Try graph libs(MELON)
+// - Optimize IDM and MOBIL algos
+// - This is a project for fun and study,
+//   but check https://eclipse.dev/sumo/ for ideas
+//
+
 int main(int /*argc*/, char** /*argv*/)
 {
     if (!SDL_Init(SDL_INIT_VIDEO)) {
