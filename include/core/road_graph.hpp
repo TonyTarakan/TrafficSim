@@ -45,7 +45,7 @@ struct Lane {
 class RoadGraph {
     // TODO: rebuild or construct?
 public:
-    void rebuild(const std::span<RoadNode> nodes, const std::span<Lane> lanes);
+    void rebuild(std::span<const RoadNode> nodes, std::span<const Lane> lanes);
 
     // All lanes leaving a given node.
     // WARNING: the returned span dangles after the next rebuild()

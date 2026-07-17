@@ -6,7 +6,7 @@
 
 namespace ts {
 
-void RoadGraph::rebuild(const std::span<RoadNode> nodes, const std::span<Lane> lanes)
+void RoadGraph::rebuild(std::span<const RoadNode> nodes, std::span<const Lane> lanes)
 {
     adjacency_.clear();
     lane_dest_.clear();
