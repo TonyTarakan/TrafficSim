@@ -14,4 +14,6 @@ struct Vec2D {
     [[nodiscard]] float length_sq() const noexcept { return dot_prod(*this); }
 };
 
+// TODO: separate Point2D with cast from/to Vec2D
+
 }  // namespace ts
