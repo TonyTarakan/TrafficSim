@@ -1,10 +1,14 @@
 #pragma once
 
-// Per-vehicle-type IDM parameters (acceleration, gap, desired speed, etc).
+#include "core/idm.hpp"
+#include "core/vehicle.hpp"
+
+// Reasonable default IDM parameters per vehicle type.
+// The VehicleParams type itself lives in core/idm.hpp — this module only
+// provides sensible factory defaults, it doesn't own the type.
 
 namespace ts {
 
-// TODO: struct VehicleParams — desired_speed, max_accel, comfortable_decel, min_gap, time_headway, length
-// TODO: VehicleParams default_params(VehicleType type) — factory with reasonable defaults per type
+[[nodiscard]] idm::VehicleParams default_params(VehicleType type) noexcept;
 
 }  // namespace ts

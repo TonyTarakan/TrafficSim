@@ -2,6 +2,7 @@
 
 #include <cstdint>
 
+#include "core/idm.hpp"
 #include "core/road_graph.hpp"
 
 namespace ts {
@@ -21,12 +22,16 @@ enum class VehicleType : std::uint8_t {
 struct Vehicle {
     VehicleId id{};
     VehicleType type{VehicleType::Car};
+    idm::VehicleParams idm_params{};
 
     Vec2D position{};  // TODO: maybe separate Point2D class?
     float speed{0.f};  // m/s, always >= 0
 
-    // Which road segment the vehicle is on
+    // Which road segment the vehicle is on.
     LaneId lane_id{};
+
+    // How far are we from the lane's start.
+    float offset{0.f};  // m
 
     // Parallel sub-lane within the segment (0 = rightmost).
     // MOBIL works between them

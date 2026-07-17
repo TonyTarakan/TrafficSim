@@ -11,7 +11,7 @@ namespace ts::idm {
 
 // Per-vehicle-type parameters for different vehicle types (car, truck, bus)
 struct VehicleParams {
-    float desired_speed{13.9f};  // v0, m/s (~50 km/h)
+    float desired_speed{15.0f};  // v0, m/s (54 km/h)
     float max_accel{2.0f};       // a,  m/s^2
     float comfy_decel{3.0f};     // b,  m/s^2
     float min_gap{2.0f};         // s0, m

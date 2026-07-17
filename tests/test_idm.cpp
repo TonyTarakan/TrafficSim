@@ -6,7 +6,7 @@ using namespace ts::idm;
 
 // clang-format off
 constexpr VehicleParams kTestDefault{
-    .desired_speed = 13.9f, 
+    .desired_speed = 15.0f, 
     .max_accel = 2.0f, 
     .comfy_decel = 3.0f,
     .min_gap = 2.0f,

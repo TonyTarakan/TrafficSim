@@ -35,7 +35,7 @@ struct Lane {
     NodeId to{kInvalidNode};
 
     float length{0.f};             // metres
-    float speed_limit{13.9f};      // m/s, default ~50 km/h
+    float speed_limit{16.7f};      // m/s, default ~60 km/h
     std::uint8_t num_sublanes{1};  // parallel lanes in one direction
 };
 

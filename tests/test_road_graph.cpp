@@ -35,8 +35,8 @@ TEST(Lane, DefaultIsInvalid)
 TEST(Lane, DefaultSpeedLimitIsReasonable)
 {
     Lane l;
-    // ~50 km/h in m/s — default for a lane.
-    EXPECT_NEAR(l.speed_limit, 13.9f, 0.1f);
+    // ~60 km/h in m/s — default for a lane.
+    EXPECT_NEAR(l.speed_limit, 16.7f, 0.1f);
 }
 
 TEST(Lane, DefaultsToSingleSublane)
