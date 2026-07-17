@@ -49,10 +49,10 @@ public:
 
     // All lanes leaving a given node.
     // WARNING: the returned span dangles after the next rebuild()
-    [[nodiscard]] std::span<const LaneId> node_lanes_out(NodeId node) const;
+    [[nodiscard]] std::span<const LaneId> outgoing_lanes(NodeId node) const;
 
     // The node a lane leads into.
-    [[nodiscard]] NodeId lane_dest(LaneId lane) const;
+    [[nodiscard]] NodeId destination_node(LaneId lane) const;
 
     // Shortest path (by travel time = length / speed_limit) from src to dst,
     // Return value:
@@ -65,8 +65,8 @@ private:
     // TODO: try another containers later
     std::unordered_map<NodeId, std::vector<LaneId>> adjacency_;  // All Lanes 'growing' from the node
     std::unordered_map<LaneId, NodeId> lane_dest_;               // Lane destination
-    std::unordered_map<LaneId, Lane> lane_info_;
-    std::unordered_map<NodeId, RoadNode> node_info_;
+    std::unordered_map<LaneId, Lane> lanes_by_id_;
+    std::unordered_map<NodeId, RoadNode> nodes_by_id_;
 };
 
 }  // namespace ts

@@ -89,8 +89,8 @@ TEST(RoadGraph, RebuildPopulatesAdjacency)
     RoadGraph g;
     g.rebuild(nodes, lanes);
 
-    ASSERT_EQ(g.node_lanes_out(0).size(), 1u);
-    EXPECT_EQ(g.node_lanes_out(0)[0], 0u);  // lane 0 leaves node 0
+    ASSERT_EQ(g.outgoing_lanes(0).size(), 1u);
+    EXPECT_EQ(g.outgoing_lanes(0)[0], 0u);  // lane 0 leaves node 0
 }
 
 TEST(RoadGraph, SinkNodeHasEmptyOutgoing)
@@ -100,7 +100,7 @@ TEST(RoadGraph, SinkNodeHasEmptyOutgoing)
     RoadGraph g;
     g.rebuild(nodes, lanes);
 
-    EXPECT_TRUE(g.node_lanes_out(3).empty());
+    EXPECT_TRUE(g.outgoing_lanes(3).empty());
 }
 
 TEST(RoadGraph, LaneEndNodeIsCorrect)
@@ -109,9 +109,9 @@ TEST(RoadGraph, LaneEndNodeIsCorrect)
     RoadGraph g;
     g.rebuild(nodes, lanes);
 
-    EXPECT_EQ(g.lane_dest(0), 1u);
-    EXPECT_EQ(g.lane_dest(2), 3u);
-    EXPECT_EQ(g.lane_dest(999), kInvalidNode);  // unknown lane
+    EXPECT_EQ(g.destination_node(0), 1u);
+    EXPECT_EQ(g.destination_node(2), 3u);
+    EXPECT_EQ(g.destination_node(999), kInvalidNode);  // unknown lane
 }
 
 TEST(RoadGraph, FindRouteSameNodeIsEmptyPath)
