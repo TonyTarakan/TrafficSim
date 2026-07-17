@@ -17,12 +17,10 @@ std::optional<idm::LeaderInfo> find_leader(const Vehicle& ego, std::span<const V
     float best_gap = std::numeric_limits<float>::infinity();
 
     for (const auto& other : all_vehicles) {
+        if (other.id == ego.id) continue;
         if (other.lane_id != ego.lane_id) continue;
         if (other.sublane_idx != ego.sublane_idx) continue;
         if (other.offset <= ego.offset) continue;  // behind us, not a leader
-
-        if (other.id == ego.id) [[unlikely]]
-            continue;
 
         float gap = other.offset - ego.offset;
         if (gap < best_gap) {
@@ -41,6 +39,7 @@ SimEngine::SimEngine(SimConfig config) : config_(config) {}
 void SimEngine::tick()
 {
     // Snapshot leaders before mutating anything
+    // TODO: this is O(N*N). Optimize!
     std::vector<std::optional<idm::LeaderInfo>> leaders(vehicles_.size());
     for (std::size_t i = 0; i < vehicles_.size(); ++i) {
         leaders[i] = find_leader(vehicles_[i], vehicles_);
