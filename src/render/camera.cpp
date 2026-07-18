@@ -1,5 +1,4 @@
-namespace ts {
+#include "render/camera.hpp"
 
-// TODO: implementation
-
-}  // namespace ts
+// Camera is header-only.
+// Kept as a translation unit.
