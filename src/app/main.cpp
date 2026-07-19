@@ -37,22 +37,34 @@ std::vector<ts::RoadNode> make_demo_nodes()
 std::vector<ts::Lane> make_demo_lanes()
 {
     return {
-        {.id = 0, .from = 0, .to = 1, .length = 200.f, .speed_limit = 13.9f, .num_sublanes = 2},
+        {.id = 0, .from = 0, .to = 1, .length = 200.f, .speed_limit = 15.0f, .num_sublanes = 4},
     };
 }
 
 void spawn_demo_vehicles(ts::SimEngine& engine)
 {
-    for (int i = 0; i < 6; ++i) {
+    ts::Vehicle truck{
+        .id = 0,
+        .type = ts::VehicleType::Truck,
+        .idm_params = ts::default_params(ts::VehicleType::Truck),
+        .speed = 6.f,
+        .lane_id = 0,
+        .offset = 150.f,
+        .sublane_idx = 0,
+    };
+    truck.idm_params.desired_speed = 6.f;
+    engine.vehicles().push_back(truck);
+
+    for (int i = 1; i < 16; ++i) {
         ts::Vehicle v{
             .id = static_cast<ts::VehicleId>(i),
             .type = ts::VehicleType::Car,
-            .idm_params = ts::default_params(v.type),
-            .speed = 5.f,
-            .lane_id = i % 1u,                       // spread between sublanes
-            .offset = static_cast<float>(i) * 15.f,  // spread along the lane
+            .idm_params = ts::default_params(ts::VehicleType::Car),
+            .speed = 8.f,
+            .lane_id = 0,
+            .offset = static_cast<float>(i) * 10.f,  // spread along the lane
+            .sublane_idx = i % 3,
         };
-
         engine.vehicles().push_back(v);
     }
 }
@@ -81,6 +93,7 @@ int main(int /*argc*/, char** /*argv*/)
     std::vector<ts::Lane> lanes = make_demo_lanes();
 
     ts::SimEngine engine;
+    engine.set_lanes(lanes);
     spawn_demo_vehicles(engine);
 
     ts::Renderer renderer{sdl_renderer};

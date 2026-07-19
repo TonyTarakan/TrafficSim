@@ -1,10 +1,13 @@
 #include "render/renderer.hpp"
 
 #include <algorithm>
+#include <cmath>
 
 namespace ts {
 
 namespace {
+
+constexpr float kSublaneWidthM = 3.5f;  // typical lane width, metres
 
 const RoadNode* find_node(std::span<const RoadNode> nodes, NodeId id)
 {
@@ -20,6 +23,18 @@ const Lane* find_lane(std::span<const Lane> lanes, LaneId id)
     return (it != lanes.end()) ? &*it : nullptr;
 }
 
+// Unit vector perpendicular to the from->to direction, for offsetting
+// sublanes sideways. Returns {0,0} for a degenerate (zero-length) lane.
+Vec2D lane_perpendicular(Vec2D from, Vec2D to)
+{
+    Vec2D dir = to - from;
+    float len = std::sqrt(dir.length_sq());
+    if (len < 1e-6f) {
+        return {.x = 0.f, .y = 0.f};
+    }
+    return {.x = -dir.y / len, .y = dir.x / len};
+}
+
 }  // namespace
 
 void Renderer::draw_lanes(std::span<const RoadNode> nodes, std::span<const Lane> lanes, const Camera& camera)
@@ -33,9 +48,15 @@ void Renderer::draw_lanes(std::span<const RoadNode> nodes, std::span<const Lane>
             continue;
         }
 
-        Vec2D p1 = camera.to_screen(from->pos);
-        Vec2D p2 = camera.to_screen(to->pos);
-        SDL_RenderLine(sdl_renderer_, p1.x, p1.y, p2.x, p2.y);
+        Vec2D perp = lane_perpendicular(from->pos, to->pos);
+
+        // One line per sublane, so a multi-lane road actually looks like one.
+        for (std::uint8_t sub = 0; sub < lane.num_sublanes; ++sub) {
+            Vec2D lane_offset = perp * (static_cast<float>(sub) * kSublaneWidthM);
+            Vec2D p1 = camera.to_screen(from->pos + lane_offset);
+            Vec2D p2 = camera.to_screen(to->pos + lane_offset);
+            SDL_RenderLine(sdl_renderer_, p1.x, p1.y, p2.x, p2.y);
+        }
     }
 }
 
@@ -59,7 +80,12 @@ void Renderer::draw_vehicles(std::span<const Vehicle> vehicles, std::span<const 
 
         // Workaround
         float t = (lane->length > 0.f) ? std::clamp(v.offset / lane->length, 0.f, 1.f) : 0.f;
-        Vec2D world_pos = from->pos + (to->pos - from->pos) * t;
+        Vec2D lane_pos = from->pos + (to->pos - from->pos) * t;
+
+        // Offset sideways onto this vehicle's sublane, same convention as draw_lanes.
+        Vec2D perp = lane_perpendicular(from->pos, to->pos);
+        Vec2D world_pos = lane_pos + perp * (static_cast<float>(v.sublane_idx) * kSublaneWidthM);
+
         Vec2D screen_pos = camera.to_screen(world_pos);
 
         SDL_FRect rect{.x = screen_pos.x - kVehicleSizePx / 2.f,

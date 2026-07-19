@@ -51,15 +51,26 @@ void SimEngine::tick()
     // leader snapshot further down. Only sublane_idx is mutated here —
     // speed/offset stay untouched until the IDM pass, so that pass's own
     // snapshot-then-apply logic is unaffected.
+    constexpr float kLaneChangeCooldownS = 3.f;  // seconds before re-evaluating
+
     std::vector<int> sublane_deltas(vehicles_.size(), 0);
     for (std::size_t i = 0; i < vehicles_.size(); ++i) {
+        if (vehicles_[i].lane_change_cooldown > 0.f) {
+            continue;  // still cooling down from a recent switch — skip decide()
+        }
         const Lane* lane = find_lane(vehicles_[i].lane_id);
         std::uint8_t num_sublanes = lane ? lane->num_sublanes : 1;
         sublane_deltas[i] = lane_change::decide(vehicles_[i], vehicles_, num_sublanes);
     }
     for (std::size_t i = 0; i < vehicles_.size(); ++i) {
-        int new_sublane = static_cast<int>(vehicles_[i].sublane_idx) + sublane_deltas[i];
-        vehicles_[i].sublane_idx = static_cast<std::uint8_t>(new_sublane);
+        Vehicle& v = vehicles_[i];
+        if (sublane_deltas[i] != 0) {
+            int new_sublane = static_cast<int>(v.sublane_idx) + sublane_deltas[i];
+            v.sublane_idx = static_cast<std::uint8_t>(new_sublane);
+            v.lane_change_cooldown = kLaneChangeCooldownS;
+        } else {
+            v.lane_change_cooldown = std::max(0.f, v.lane_change_cooldown - config_.fixed_dt);
+        }
     }
 
     // --- car-following (IDM), on the (now lane-change-applied) snapshot ---
