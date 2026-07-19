@@ -63,6 +63,7 @@ add_library(trafficsim_lib STATIC
     src/core/sim_engine.cpp
     src/core/traffic_rules.cpp
     src/core/vehicle_params.cpp
+    src/core/lane_change.cpp  
     src/concurrency/thread_pool.cpp
     src/concurrency/work_queue.cpp
     src/render/renderer.cpp
@@ -92,6 +93,7 @@ add_executable(tests
     tests/test_idm.cpp
     tests/test_road_graph.cpp
     tests/test_sim_engine.cpp
+    tests/test_lane_change.cpp
 )
 target_link_libraries(tests PRIVATE trafficsim_lib GTest::gtest_main)
 

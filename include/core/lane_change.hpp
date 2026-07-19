@@ -1,6 +1,7 @@
 #pragma once
 
-#include <optional>
+#include <cstdint>
+#include <span>
 
 #include "core/vehicle.hpp"
 
@@ -20,22 +21,20 @@
 //
 // Operates purely on already-known IDM accelerations (before/after gap
 // calculations) — no separate physics model, just a decision layer.
+// Reads a vehicle snapshot only, never mutates — same "decide on last
+// tick's state, apply after" pattern as IDM itself.
 
-namespace ts {
+namespace ts::lane_change {
 
-struct Vehicle;  // core/vehicle.hpp
+struct MobilParams {
+    float politeness{0.3f};     // p — weight given to affected neighbors' comfort
+    float switch_thresh{0.2f};  // Delta_a_th, m/s^2 — minimum gain to bother switching
+    float max_safe_decel{4.f};  // b_safe, m/s^2 — never force a follower to brake harder
+};
 
-namespace lane_change {
+// Returns the sublane_idx delta `ego` should apply this tick: -1, 0, or +1.
+// `num_sublanes` bounds which deltas are even legal on ego's current lane.
+[[nodiscard]]
+int decide(const Vehicle& ego, std::span<const Vehicle> all_vehicles, int num_sublanes, const MobilParams& params = {});
 
-// TODO: struct MobilParams — politeness factor, changing threshold,
-//       max safe deceleration for the follower on the target lane.
-
-// TODO: std::optional<int> decide(...) — returns -1 / 0 / +1 sublane
-//       delta for one vehicle, given its current/left/right neighbours'
-//       IDM state. Called once per vehicle per tick, independent of
-//       other vehicles' decisions that same tick (evaluated on last
-//       tick's snapshot, applied atomically — same pattern as IDM itself,
-//       so it parallelizes the same way across the thread pool).
-
-}  // namespace lane_change
-}  // namespace ts
+}  // namespace ts::lane_change

@@ -49,7 +49,7 @@ void spawn_demo_vehicles(ts::SimEngine& engine)
             .type = ts::VehicleType::Car,
             .idm_params = ts::default_params(v.type),
             .speed = 5.f,
-            .lane_id = i % 2u,                       // spread between sublanes
+            .lane_id = i % 1u,                       // spread between sublanes
             .offset = static_cast<float>(i) * 15.f,  // spread along the lane
         };
 

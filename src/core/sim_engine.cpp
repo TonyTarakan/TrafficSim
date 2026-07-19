@@ -4,6 +4,7 @@
 #include <limits>
 
 #include "core/idm.hpp"
+#include "core/lane_change.hpp"
 
 namespace ts {
 
@@ -36,8 +37,32 @@ std::optional<idm::LeaderInfo> find_leader(const Vehicle& ego, std::span<const V
 
 SimEngine::SimEngine(SimConfig config) : config_(config) {}
 
+const Lane* SimEngine::find_lane(LaneId id) const
+{
+    auto it = std::ranges::find_if(lanes_, [&](const Lane& l) { return l.id == id; });
+    return (it != lanes_.end()) ? &*it : nullptr;
+}
+
 void SimEngine::tick()
 {
+    // --- lane-change decisions, on the pre-tick snapshot ---
+    // Must happen before any IDM mutation below: MOBIL needs to see the
+    // same consistent "world" for every vehicle, same reasoning as the
+    // leader snapshot further down. Only sublane_idx is mutated here —
+    // speed/offset stay untouched until the IDM pass, so that pass's own
+    // snapshot-then-apply logic is unaffected.
+    std::vector<int> sublane_deltas(vehicles_.size(), 0);
+    for (std::size_t i = 0; i < vehicles_.size(); ++i) {
+        const Lane* lane = find_lane(vehicles_[i].lane_id);
+        std::uint8_t num_sublanes = lane ? lane->num_sublanes : 1;
+        sublane_deltas[i] = lane_change::decide(vehicles_[i], vehicles_, num_sublanes);
+    }
+    for (std::size_t i = 0; i < vehicles_.size(); ++i) {
+        int new_sublane = static_cast<int>(vehicles_[i].sublane_idx) + sublane_deltas[i];
+        vehicles_[i].sublane_idx = static_cast<std::uint8_t>(new_sublane);
+    }
+
+    // --- car-following (IDM), on the (now lane-change-applied) snapshot ---
     // Snapshot leaders before mutating anything
     // TODO: this is O(N*N). Optimize!
     std::vector<std::optional<idm::LeaderInfo>> leaders(vehicles_.size());
