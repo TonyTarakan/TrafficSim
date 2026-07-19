@@ -69,20 +69,17 @@ void Renderer::draw_vehicles(std::span<const Vehicle> vehicles, std::span<const 
 
     for (const auto& v : vehicles) {
         const Lane* lane = find_lane(lanes, v.lane_id);
-        if (!lane) {
-            continue;
-        }
+        if (!lane) continue;
+
         const RoadNode* from = find_node(nodes, lane->from);
         const RoadNode* to = find_node(nodes, lane->to);
-        if (!from || !to) {
-            continue;
-        }
+        if (!from || !to) continue;
 
         // Workaround
         float t = (lane->length > 0.f) ? std::clamp(v.offset / lane->length, 0.f, 1.f) : 0.f;
         Vec2D lane_pos = from->pos + (to->pos - from->pos) * t;
 
-        // Offset sideways onto this vehicle's sublane, same convention as draw_lanes.
+        // Offset (parallelogram sum)
         Vec2D perp = lane_perpendicular(from->pos, to->pos);
         Vec2D world_pos = lane_pos + perp * (static_cast<float>(v.sublane_idx) * kSublaneWidthM);
 

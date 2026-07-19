@@ -21,7 +21,7 @@ struct VehicleParams {
 // Gap and relative speed to the vehicle ahead.
 struct LeaderInfo {
     float gap;  // net bumper-to-bumper distance, metres (>= 0)
-    float dv;   // vehicle.speed - leader.speed (positive = closing in)
+    float dv;   // vehicle.speed - leader.speed (positive => closing in)
 };
 
 // IDM formula:
@@ -30,8 +30,9 @@ struct LeaderInfo {
 //
 //   s*(v, dv) = s0 + v*T + (v*dv) / (2*sqrt(a_max*b))
 //
-// nullopt leader means free road ahead
+// nullopt leader_info means free road ahead
 [[nodiscard]]
-float acceleration(const VehicleParams& p, float curr_speed, std::optional<LeaderInfo> leader = std::nullopt) noexcept;
+float accelerate(const VehicleParams& p, float curr_speed,
+                 std::optional<LeaderInfo> leader_info = std::nullopt) noexcept;
 
 }  // namespace ts::idm

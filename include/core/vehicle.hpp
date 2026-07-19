@@ -34,14 +34,11 @@ struct Vehicle {
     float offset{0.f};  // m
 
     // Parallel sub-lane within the segment (0 = rightmost).
-    // MOBIL works between them
-    // IDM works per sublane
+    // MOBIL works between them, IDM works per sublane
     int sublane_idx{0};
 
     // Seconds remaining before another lane change may be considered.
-    // Without this, MOBIL's politeness term can flip sign right after a
-    // switch (the vehicle you just left now "benefits" from you coming
-    // back), causing rapid oscillation between sublanes every tick.
+    // Without this, MOBIL can cause lane change every tick.
     float lane_change_cooldown{0.f};
 };
 

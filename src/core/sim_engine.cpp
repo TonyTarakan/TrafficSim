@@ -51,24 +51,26 @@ void SimEngine::tick()
     // leader snapshot further down. Only sublane_idx is mutated here —
     // speed/offset stay untouched until the IDM pass, so that pass's own
     // snapshot-then-apply logic is unaffected.
-    constexpr float kLaneChangeCooldownS = 3.f;  // seconds before re-evaluating
+    constexpr float kLaneChangeCooldownS = 3.f;  // seconds before re-evaluating // TODO: make random
+    using namespace lane_change;
 
-    std::vector<int> sublane_deltas(vehicles_.size(), 0);
+    std::vector<Turn> sublane_deltas(vehicles_.size(), Turn::NONE);
     for (std::size_t i = 0; i < vehicles_.size(); ++i) {
         if (vehicles_[i].lane_change_cooldown > 0.f) {
             continue;  // still cooling down from a recent switch — skip decide()
         }
         const Lane* lane = find_lane(vehicles_[i].lane_id);
         std::uint8_t num_sublanes = lane ? lane->num_sublanes : 1;
-        sublane_deltas[i] = lane_change::decide(vehicles_[i], vehicles_, num_sublanes);
+        sublane_deltas[i] = decide(vehicles_[i], vehicles_, num_sublanes);
     }
     for (std::size_t i = 0; i < vehicles_.size(); ++i) {
         Vehicle& v = vehicles_[i];
-        if (sublane_deltas[i] != 0) {
-            int new_sublane = static_cast<int>(v.sublane_idx) + sublane_deltas[i];
+        if (sublane_deltas[i] != Turn::NONE) {
+            int new_sublane = static_cast<int>(v.sublane_idx) + static_cast<int>(sublane_deltas[i]);
             v.sublane_idx = static_cast<std::uint8_t>(new_sublane);
             v.lane_change_cooldown = kLaneChangeCooldownS;
-        } else {
+        }
+        else {
             v.lane_change_cooldown = std::max(0.f, v.lane_change_cooldown - config_.fixed_dt);
         }
     }
@@ -84,7 +86,7 @@ void SimEngine::tick()
     for (std::size_t i = 0; i < vehicles_.size(); ++i) {
         Vehicle& v = vehicles_[i];
 
-        float accel = idm::acceleration(v.idm_params, v.speed, leaders[i]);
+        float accel = idm::accelerate(v.idm_params, v.speed, leaders[i]);
         float new_speed = std::max(0.f, v.speed + accel * config_.fixed_dt);  // speed >= 0
 
         v.offset += 0.5f * (v.speed + new_speed) * config_.fixed_dt;  // linear accel distance

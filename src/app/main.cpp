@@ -5,6 +5,7 @@
 #include <imgui_impl_sdlrenderer3.h>
 
 #include <print>
+#include <random>
 #include <vector>
 
 #include "core/road_graph.hpp"
@@ -41,30 +42,31 @@ std::vector<ts::Lane> make_demo_lanes()
     };
 }
 
+float generate_rand(float from, float to)
+{
+    static std::random_device rd;
+    static std::mt19937 rng{rd()};  // генератор
+    static std::uniform_real_distribution<float> dist{from, to};
+
+    return dist(rng);
+}
+
 void spawn_demo_vehicles(ts::SimEngine& engine)
 {
-    ts::Vehicle truck{
-        .id = 0,
-        .type = ts::VehicleType::Truck,
-        .idm_params = ts::default_params(ts::VehicleType::Truck),
-        .speed = 6.f,
-        .lane_id = 0,
-        .offset = 150.f,
-        .sublane_idx = 0,
-    };
-    truck.idm_params.desired_speed = 6.f;
-    engine.vehicles().push_back(truck);
-
     for (int i = 1; i < 16; ++i) {
+        float random_speed = generate_rand(5.0f, 10.0f);
+
         ts::Vehicle v{
             .id = static_cast<ts::VehicleId>(i),
             .type = ts::VehicleType::Car,
             .idm_params = ts::default_params(ts::VehicleType::Car),
-            .speed = 8.f,
+            .speed = random_speed,
             .lane_id = 0,
             .offset = static_cast<float>(i) * 10.f,  // spread along the lane
-            .sublane_idx = i % 3,
+            .sublane_idx = i % 2,
         };
+        v.idm_params.desired_speed = random_speed;
+
         engine.vehicles().push_back(v);
     }
 }
