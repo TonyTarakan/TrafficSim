@@ -37,6 +37,17 @@ std::optional<idm::LeaderInfo> find_leader(const Vehicle& ego, std::span<const V
 
 SimEngine::SimEngine(SimConfig config) : config_(config) {}
 
+void SimEngine::set_map(std::vector<RoadNode> nodes, std::vector<Lane> lanes)
+{
+    graph_.rebuild(nodes, lanes);
+    lanes_ = std::move(lanes);
+}
+
+std::optional<std::vector<LaneId>> SimEngine::compute_route(NodeId src, NodeId dst) const
+{
+    return graph_.find_route(src, dst);
+}
+
 const Lane* SimEngine::find_lane(LaneId id) const
 {
     auto it = std::ranges::find_if(lanes_, [&](const Lane& l) { return l.id == id; });
@@ -91,9 +102,45 @@ void SimEngine::tick()
 
         v.offset += 0.5f * (v.speed + new_speed) * config_.fixed_dt;  // linear accel distance
         v.speed = new_speed;
+    }
 
-        // TODO: if offset exceeds the current lane's length
-        // move the vehicle onto its next lane on the route.
+    // --- lane transitions: advance along the route when a lane ends ---
+    // Runs after IDM integration (needs this tick's updated offset to know
+    // whether we've actually run off the end of the current lane).
+    for (auto& v : vehicles_) {
+        const Lane* cur_lane = find_lane(v.lane_id);
+        if (!cur_lane || v.offset <= cur_lane->length) {
+            continue;  // still within the current lane, nothing to do
+        }
+
+        float overflow = v.offset - cur_lane->length;
+
+        if (v.route_idx + 1 >= v.route.size()) {
+            // Workaround. No despawn logic yet -- loop back to the
+            // start so demo vehicles keep driving indefinitely.
+            v.route_idx = 0;
+        }
+        else {
+            ++v.route_idx;
+        }
+
+        if (v.route.empty()) {
+            continue;  // no route at all -- stay put at the lane's end
+        }
+
+        v.lane_id = v.route[v.route_idx];
+        v.offset = overflow;
+
+        // Forced merge: if the new lane has fewer sublanes than our
+        // current index allows, clamp into range. This is a hard merge,
+        // not a negotiated one -- MOBIL doesn't yet look ahead to an
+        // upcoming lane-count reduction, so vehicles don't proactively
+        // merge early. That's a natural follow-up, not this step.
+        const Lane* new_lane = find_lane(v.lane_id);
+        int max_sublane = new_lane ? static_cast<int>(new_lane->num_sublanes) - 1 : 0;
+        if (v.sublane_idx > max_sublane) {
+            v.sublane_idx = max_sublane;
+        }
     }
 
     sim_time_ += config_.fixed_dt;

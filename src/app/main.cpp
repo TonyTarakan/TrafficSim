@@ -26,20 +26,32 @@
 
 namespace {
 
-// A single straight demo lane with a handful of cars on it, just to see
-// SimEngine + Renderer working end to end. Real map loading comes later.
+// Two streams merging into one, then continuing to a shared destination:
+//
+//   node0 (stream A) --lane0--
+//                              --> node2 --lane2(shared)--> node3
+//   node1 (stream B) --lane1--
+//
+// Demonstrates route-following (vehicles advance lane0/1 -> lane2 when they reach the end)
+// and forced merging
+// (if the shared lane ever has fewer sublanes than an incoming one, SimEngine::tick() clamps sublane_idx on
+// transition).
 std::vector<ts::RoadNode> make_demo_nodes()
 {
     return {
-        {.id = 0, .pos = {.x = 0.f, .y = 0.f}},
-        {.id = 1, .pos = {.x = 200.f, .y = 0.f}},
+        {.id = 0, .pos = {.x = 0.f, .y = -30.f}},  // stream A origin
+        {.id = 1, .pos = {.x = 0.f, .y = 30.f}},   // stream B origin
+        {.id = 2, .pos = {.x = 150.f, .y = 0.f}},  // merge point
+        {.id = 3, .pos = {.x = 300.f, .y = 0.f}},  // shared destination
     };
 }
 
 std::vector<ts::Lane> make_demo_lanes()
 {
     return {
-        {.id = 0, .from = 0, .to = 1, .length = 200.f, .speed_limit = 15.0f, .num_sublanes = 4},
+        {.id = 0, .from = 0, .to = 2, .length = 153.f, .speed_limit = 15.f, .num_sublanes = 2},
+        {.id = 1, .from = 1, .to = 2, .length = 153.f, .speed_limit = 15.f, .num_sublanes = 2},
+        {.id = 2, .from = 2, .to = 3, .length = 150.f, .speed_limit = 15.f, .num_sublanes = 2},
     };
 }
 
@@ -52,24 +64,36 @@ float generate_rand(float from, float to)
     return dist(rng);
 }
 
-void spawn_demo_vehicles(ts::SimEngine& engine)
+void spawn_stream(ts::SimEngine& engine, ts::LaneId origin_lane, ts::NodeId origin_node, ts::VehicleId id_start)
 {
-    for (int i = 1; i < 16; ++i) {
+    auto route = engine.compute_route(origin_node, 3);
+    if (!route) {
+        return;  // shouldn't happen with this demo network, but don't crash if it does
+    }
+
+    for (int i = 0; i < 6; ++i) {
         float random_speed = generate_rand(5.0f, 10.0f);
 
         ts::Vehicle v{
-            .id = static_cast<ts::VehicleId>(i),
+            .id = id_start + static_cast<ts::VehicleId>(i),
             .type = ts::VehicleType::Car,
             .idm_params = ts::default_params(ts::VehicleType::Car),
             .speed = random_speed,
-            .lane_id = 0,
-            .offset = static_cast<float>(i) * 10.f,  // spread along the lane
+            .lane_id = origin_lane,
+            .offset = static_cast<float>(i) * 15.f,  // spread along the lane
             .sublane_idx = i % 2,
+            .route = *route,
         };
         v.idm_params.desired_speed = random_speed;
 
         engine.vehicles().push_back(v);
     }
+}
+
+void spawn_demo_vehicles(ts::SimEngine& engine)
+{
+    spawn_stream(engine, /*origin_lane=*/0, /*origin_node=*/0, /*id_start=*/0);
+    spawn_stream(engine, /*origin_lane=*/1, /*origin_node=*/1, /*id_start=*/100);
 }
 
 }  // namespace
@@ -96,7 +120,7 @@ int main(int /*argc*/, char** /*argv*/)
     std::vector<ts::Lane> lanes = make_demo_lanes();
 
     ts::SimEngine engine;
-    engine.set_lanes(lanes);
+    engine.set_map(nodes, lanes);
     spawn_demo_vehicles(engine);
 
     ts::Renderer renderer{sdl_renderer};

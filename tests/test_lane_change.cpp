@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include "core/road_graph.hpp"
 #include "core/sim_engine.hpp"
 #include "core/vehicle_params.hpp"
 
@@ -8,7 +9,9 @@ using namespace ts;
 TEST(LaneChange, SwitchesAwayFromSlowBlockerWhenAdjacentLaneIsFree)
 {
     SimEngine engine;
-    engine.set_lanes({{.id = 0, .from = 0, .to = 1, .length = 500.f, .speed_limit = 20.f, .num_sublanes = 2}});
+    std::vector<RoadNode> nodes{};
+    std::vector<Lane> lanes{{.id = 0, .from = 0, .to = 1, .length = 500.f, .speed_limit = 20.f, .num_sublanes = 2}};
+    engine.set_map(nodes, lanes);
     std::uint8_t initial_sublane_idx = 0;
 
     Vehicle truck{.id = 0,
@@ -44,7 +47,9 @@ TEST(LaneChange, SwitchesAwayFromSlowBlockerWhenAdjacentLaneIsFree)
 TEST(LaneChange, NeverSwitchesOnASingleLaneRoad)
 {
     SimEngine engine;
-    engine.set_lanes({{.id = 0, .from = 0, .to = 1, .length = 500.f, .speed_limit = 20.f, .num_sublanes = 1}});
+    std::vector<RoadNode> nodes{};
+    std::vector<Lane> lanes{{.id = 0, .from = 0, .to = 1, .length = 500.f, .speed_limit = 20.f, .num_sublanes = 1}};
+    engine.set_map(nodes, lanes);
     std::uint8_t initial_sublane_idx = 0;
 
     Vehicle v{.id = 0,
@@ -65,7 +70,10 @@ TEST(LaneChange, NeverSwitchesOnASingleLaneRoad)
 TEST(LaneChange, StaysPutWhenThereIsNothingToGain)
 {
     SimEngine engine;
-    engine.set_lanes({{.id = 0, .from = 0, .to = 1, .length = 500.f, .speed_limit = 20.f, .num_sublanes = 2}});
+    std::vector<RoadNode> nodes{};
+    std::vector<Lane> lanes{{.id = 0, .from = 0, .to = 1, .length = 500.f, .speed_limit = 20.f, .num_sublanes = 2}};
+    engine.set_map(nodes, lanes);
+
     std::uint8_t initial_sublane_idx = 0;
 
     Vehicle v{.id = 0,
@@ -89,7 +97,9 @@ TEST(LaneChange, SafetyCriterionBlocksDangerousMerge)
     // merge point, should prevent the switch even though the slow blocker
     // ahead would otherwise make it attractive.
     SimEngine engine;
-    engine.set_lanes({{.id = 0, .from = 0, .to = 1, .length = 500.f, .speed_limit = 30.f, .num_sublanes = 2}});
+    std::vector<RoadNode> nodes{};
+    std::vector<Lane> lanes{{.id = 0, .from = 0, .to = 1, .length = 500.f, .speed_limit = 30.f, .num_sublanes = 2}};
+    engine.set_map(nodes, lanes);
 
     Vehicle slow_blocker{.id = 0,
                          .idm_params = default_params(VehicleType::Car),
