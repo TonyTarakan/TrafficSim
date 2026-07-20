@@ -39,7 +39,7 @@ struct Vehicle {
 
     // Seconds remaining before another lane change may be considered.
     // Without this, MOBIL can cause lane change every tick.
-    float lane_change_cooldown{0.f};
+    float lane_change_cooldown{1.f};
 };
 
 }  // namespace ts

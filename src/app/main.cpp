@@ -6,6 +6,7 @@
 
 #include <print>
 #include <random>
+#include <thread>
 #include <vector>
 
 #include "core/road_graph.hpp"
@@ -103,33 +104,46 @@ int main(int /*argc*/, char** /*argv*/)
     camera.offset = {.x = -50.f, .y = -50.f};  // leave a little margin around the lane
     camera.zoom = 5.f;
 
-    bool running = true;
+    std::atomic<bool> running = true;
+
+    std::jthread sim_thread([&] {
+        using namespace std::chrono;
+
+        constexpr auto dt = 20ms;
+
+        while (running) {
+            auto start = steady_clock::now();
+
+            engine.tick();
+
+            std::this_thread::sleep_until(start + dt);
+        }
+    });
+
     while (running) {
+        engine.world_buffer().consume();
+        const auto& snapshot = engine.world_buffer().front();
+
         SDL_Event ev;
         while (SDL_PollEvent(&ev)) {
             ImGui_ImplSDL3_ProcessEvent(&ev);
             if (ev.type == SDL_EVENT_QUIT) running = false;
         }
 
-        // TODO: timer
-        // Single-threaded for now: advance the sim once per rendered frame.
-        // A fixed-timestep sim thread comes once this is proven correct.
-        engine.tick();
-
         ImGui_ImplSDLRenderer3_NewFrame();
         ImGui_ImplSDL3_NewFrame();
         ImGui::NewFrame();
 
         ImGui::Begin("TrafficSim");
-        ImGui::Text("sim time: %.1f s", engine.sim_time());
-        ImGui::Text("vehicles: %zu", engine.vehicles().size());
+        ImGui::Text("sim time: %.1f s", snapshot.sim_time);
+        ImGui::Text("vehicles: %zu", snapshot.vehicles.size());
         ImGui::End();
 
         SDL_SetRenderDrawColor(sdl_renderer, 30, 30, 30, 255);
         SDL_RenderClear(sdl_renderer);
 
         renderer.draw_lanes(nodes, lanes, camera);
-        renderer.draw_vehicles(engine.vehicles(), nodes, lanes, camera);
+        renderer.draw_vehicles(snapshot.vehicles, nodes, lanes, camera);
 
         ImGui::Render();
         ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), sdl_renderer);

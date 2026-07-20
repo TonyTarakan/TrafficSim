@@ -97,6 +97,11 @@ void SimEngine::tick()
     }
 
     sim_time_ += config_.fixed_dt;
+
+    world_buffer_.back().vehicles = vehicles_;
+    world_buffer_.back().sim_time = sim_time_;
+
+    world_buffer_.publish();
 }
 
 }  // namespace ts

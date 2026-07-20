@@ -31,7 +31,6 @@ public:
     // Returns:
     //  - true if we have new data
     //  - false if no new data available
-    [[nodiscard]]
     bool consume() noexcept
     {
         std::uint32_t curr_rd_code = spare_idx_.load(std::memory_order_acquire);
