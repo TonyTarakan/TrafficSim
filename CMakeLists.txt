@@ -65,6 +65,7 @@ add_library(trafficsim_lib STATIC
     src/core/vehicle_params.cpp
     src/core/lane_change.cpp  
     src/concurrency/thread_pool.cpp
+    src/concurrency/triple_buffer.cpp
     src/concurrency/work_queue.cpp
     src/render/renderer.cpp
     src/render/camera.cpp

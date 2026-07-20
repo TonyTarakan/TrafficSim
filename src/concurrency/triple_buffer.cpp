@@ -1,4 +1,4 @@
-#include "concurrency/double_buffer.hpp"
+#include "concurrency/triple_buffer.hpp"
 
 namespace ts {
 
