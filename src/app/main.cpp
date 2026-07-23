@@ -62,7 +62,7 @@ std::vector<ts::Lane> make_demo_lanes()
 std::vector<ts::Junction> make_demo_junctions()
 {
     ts::Junction j{};
-    j.node = 2;
+    j.node_id = 2;
     j.incoming = {0, 1};
     j.control = ts::PriorityControl{.yields_to = {{1, {0}}}};
     return {j};

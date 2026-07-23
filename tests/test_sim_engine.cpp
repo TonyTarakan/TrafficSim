@@ -124,7 +124,7 @@ TEST(SimEngine, VehicleStopsAtRedLightJunction)
     engine.set_map(nodes, lanes);
 
     // Lane 0's phase never comes up -- an always-red light for this approach.
-    Junction junction{.node = 1,
+    Junction junction{.node_id = 1,
                       .incoming = {0},
                       .control = TrafficLightControl{.phases = {{.green_lanes = {}, .duration = 1000.f}}}};
     engine.set_junctions({junction});
@@ -161,7 +161,7 @@ TEST(SimEngine, VehicleYieldsToPriorityCrossTraffic)
     };
     engine.set_map(nodes, lanes);
 
-    Junction junction{.node = 1,
+    Junction junction{.node_id = 1,
                       .incoming = {0, 2},
                       .control = PriorityControl{.yields_to = {{0, {2}}}}};  // minor (0) yields to main (2)
     engine.set_junctions({junction});

@@ -69,7 +69,7 @@ TEST(TrafficLightControl, RespectsCurrentPhase)
 TEST(TrafficLightControl, AdvanceSignalsCyclesPhases)
 {
     Junction j;
-    j.node = 10;
+    j.node_id = 10;
     j.incoming = {0, 1};
     j.control = TrafficLightControl{.phases = {
                                         {.green_lanes = {0}, .duration = 10.f},
@@ -91,15 +91,15 @@ TEST(TrafficLightControl, AdvanceSignalsCyclesPhases)
 TEST(JunctionMap, FindByNodeAndLane)
 {
     Junction j;
-    j.node = 10;
+    j.node_id = 10;
     j.incoming = {0, 1};
 
     JunctionMap map;
     map.rebuild({j});
 
-    EXPECT_EQ(map.find_by_node(10)->node, 10u);
-    EXPECT_EQ(map.find_by_lane(0)->node, 10u);
-    EXPECT_EQ(map.find_by_lane(1)->node, 10u);
+    EXPECT_EQ(map.find_by_node(10)->node_id, 10u);
+    EXPECT_EQ(map.find_by_lane(0)->node_id, 10u);
+    EXPECT_EQ(map.find_by_lane(1)->node_id, 10u);
     EXPECT_EQ(map.find_by_node(999), nullptr);
     EXPECT_EQ(map.find_by_lane(999), nullptr);
 }
@@ -107,7 +107,7 @@ TEST(JunctionMap, FindByNodeAndLane)
 TEST(FindJunctionYield, PriorityLaneWithNoRivalsProceeds)
 {
     CrossroadsFixture f;
-    Junction j{.node = 10,
+    Junction j{.node_id = 10,
                .incoming = {0, 1},
                .control = PriorityControl{.yields_to = {{1, {0}}}}};  // lane 1 yields to lane 0
     JunctionMap map;
@@ -122,7 +122,7 @@ TEST(FindJunctionYield, PriorityLaneWithNoRivalsProceeds)
 TEST(FindJunctionYield, MinorLaneYieldsToCloseRival)
 {
     CrossroadsFixture f;
-    Junction j{.node = 10, .incoming = {0, 1}, .control = PriorityControl{.yields_to = {{1, {0}}}}};
+    Junction j{.node_id = 10, .incoming = {0, 1}, .control = PriorityControl{.yields_to = {{1, {0}}}}};
     JunctionMap map;
     map.rebuild({j});
 
@@ -139,7 +139,7 @@ TEST(FindJunctionYield, MinorLaneYieldsToCloseRival)
 TEST(FindJunctionYield, MinorLaneProceedsWhenGapIsWideEnough)
 {
     CrossroadsFixture f;
-    Junction j{.node = 10, .incoming = {0, 1}, .control = PriorityControl{.yields_to = {{1, {0}}}}};
+    Junction j{.node_id = 10, .incoming = {0, 1}, .control = PriorityControl{.yields_to = {{1, {0}}}}};
     JunctionMap map;
     map.rebuild({j});
 
@@ -155,7 +155,7 @@ TEST(FindJunctionYield, MinorLaneProceedsWhenGapIsWideEnough)
 TEST(FindJunctionYield, YieldsWhileJunctionBoxIsOccupied)
 {
     CrossroadsFixture f;
-    Junction j{.node = 10, .incoming = {0, 1}, .control = PriorityControl{.yields_to = {{1, {0}}}}};
+    Junction j{.node_id = 10, .incoming = {0, 1}, .control = PriorityControl{.yields_to = {{1, {0}}}}};
     JunctionMap map;
     map.rebuild({j});
 
@@ -171,7 +171,7 @@ TEST(FindJunctionYield, YieldsWhileJunctionBoxIsOccupied)
 TEST(FindJunctionYield, RedLightForcesStop)
 {
     CrossroadsFixture f;
-    Junction j{.node = 10,
+    Junction j{.node_id = 10,
                .incoming = {0, 1},
                .control = TrafficLightControl{.phases = {
                                                   {.green_lanes = {0}, .duration = 10.f},
@@ -189,7 +189,7 @@ TEST(FindJunctionYield, RedLightForcesStop)
 TEST(FindJunctionYield, GreenLightProceeds)
 {
     CrossroadsFixture f;
-    Junction j{.node = 10,
+    Junction j{.node_id = 10,
                .incoming = {0, 1},
                .control = TrafficLightControl{.phases = {
                                                   {.green_lanes = {0}, .duration = 10.f},

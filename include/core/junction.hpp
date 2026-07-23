@@ -48,9 +48,14 @@ struct TrafficLightControl {
 using JunctionControl = std::variant<UnregulatedControl, PriorityControl, TrafficLightControl>;
 
 struct Junction {
-    NodeId node{kInvalidNode};
+    NodeId node_id{kInvalidNode};
     std::vector<LaneId> incoming;
     JunctionControl control{UnregulatedControl{}};
+
+    // TODO: fix this workaround
+    // We need to preserve the invariant with node_id and incoming lanes
+    Vec2D pos{};
+    std::unordered_map<LaneId, Vec2D> lines_from{};
 };
 
 // Registry of all junctions on the current map.

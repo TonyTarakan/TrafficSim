@@ -5,6 +5,7 @@
 #include <algorithm>
 
 #include "core/log.hpp"
+#include "core/road_graph.hpp"
 
 namespace ts {
 
@@ -23,7 +24,7 @@ void JunctionMap::rebuild(std::vector<Junction> junctions)
     index_by_lane_.clear();
 
     for (std::size_t i = 0; i < junctions_.size(); ++i) {
-        index_by_node_[junctions_[i].node] = i;
+        index_by_node_[junctions_[i].node_id] = i;
         for (LaneId lane : junctions_[i].incoming) {
             index_by_lane_[lane] = i;
         }
@@ -59,7 +60,7 @@ void JunctionMap::advance_signals(float dt)
         if (light_ctl->phase_elapsed >= current.duration) {
             light_ctl->phase_elapsed -= current.duration;
             light_ctl->phase_idx = (light_ctl->phase_idx + 1) % light_ctl->phases.size();
-            LOG_INFO(log::get(), "junction {} signal advanced to phase {}", junction.node, light_ctl->phase_idx);
+            LOG_INFO(log::get(), "junction {} signal advanced to phase {}", junction.node_id, light_ctl->phase_idx);
         }
     }
 }
@@ -114,7 +115,7 @@ bool yields_to_rivals(const Junction& junction, VehicleId ego_id, std::span<cons
         return false;
     }
 
-    if (junction_is_occupied(junction.node, ego_id, all_vehicles, all_lanes)) {
+    if (junction_is_occupied(junction.node_id, ego_id, all_vehicles, all_lanes)) {
         return true;
     }
 
@@ -128,6 +129,16 @@ bool yields_to_rivals(const Junction& junction, VehicleId ego_id, std::span<cons
     }
 
     return false;
+}
+
+// The other incoming lanes at the junction that 'ego_lane' must yield to.
+std::vector<LaneId> right_hand_rivals(const Junction&, const Lane&)
+{
+    std::vector<LaneId> rivals;
+
+    // TODO
+
+    return rivals;
 }
 
 template <class... Ts>
@@ -154,8 +165,8 @@ std::optional<idm::LeaderInfo> leader_to_yield(const Vehicle& ego, const Lane& e
     bool must_yield = std::visit(overloaded{
 
         [&](const UnregulatedControl& ) {
-            // TODO: implement
-            return false;
+            auto rivals = right_hand_rivals(*junction, ego_lane);
+            return yields_to_rivals(*junction, ego.id, rivals, all_vehicles, all_lanes);
         },
 
         [&](const TrafficLightControl& control) { 
