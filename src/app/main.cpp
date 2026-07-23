@@ -3,12 +3,14 @@
 #include <imgui.h>
 #include <imgui_impl_sdl3.h>
 #include <imgui_impl_sdlrenderer3.h>
+#include <quill/LogMacros.h>
 
 #include <print>
 #include <random>
 #include <thread>
 #include <vector>
 
+#include "core/log.hpp"
 #include "core/road_graph.hpp"
 #include "core/sim_engine.hpp"
 #include "core/vehicle_params.hpp"
@@ -71,7 +73,7 @@ void spawn_stream(ts::SimEngine& engine, ts::LaneId origin_lane, ts::NodeId orig
         return;  // shouldn't happen with this demo network, but don't crash if it does
     }
 
-    for (int i = 0; i < 6; ++i) {
+    for (int i = 0; i < 10; ++i) {
         float random_speed = generate_rand(5.0f, 10.0f);
 
         ts::Vehicle v{
@@ -100,7 +102,11 @@ void spawn_demo_vehicles(ts::SimEngine& engine)
 
 int main(int /*argc*/, char** /*argv*/)
 {
+    ts::log::init();
+    LOG_INFO(ts::log::get(), "TrafficSim starting up");
+
     if (!SDL_Init(SDL_INIT_VIDEO)) {
+        LOG_CRITICAL(ts::log::get(), "SDL_Init failed: {}", SDL_GetError());
         std::println("SDL_Init: {}\n", SDL_GetError());
         return 1;
     }
@@ -180,6 +186,8 @@ int main(int /*argc*/, char** /*argv*/)
     SDL_DestroyRenderer(sdl_renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
+
+    LOG_INFO(ts::log::get(), "TrafficSim shutting down");
 
     return 0;
 }

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/vec2.hpp"
+#include "core/vec2d.hpp"
 
 // World <-> screen coordinate conversion, pan and zoom.
 

@@ -56,6 +56,13 @@ FetchContent_Declare(nlohmann_json
 )
 FetchContent_MakeAvailable(nlohmann_json)
 
+FetchContent_Declare(quill
+    GIT_REPOSITORY https://github.com/odygrd/quill.git
+    GIT_TAG        v12.1.0
+    GIT_SHALLOW    TRUE
+)
+FetchContent_MakeAvailable(quill)
+
 # main lib
 add_library(trafficsim_lib STATIC
     src/core/road_graph.cpp
@@ -64,6 +71,7 @@ add_library(trafficsim_lib STATIC
     src/core/traffic_rules.cpp
     src/core/vehicle_params.cpp
     src/core/lane_change.cpp  
+    src/core/log.cpp
     src/concurrency/thread_pool.cpp
     src/concurrency/triple_buffer.cpp
     src/concurrency/work_queue.cpp
@@ -74,6 +82,7 @@ add_library(trafficsim_lib STATIC
     src/map_io/map_serializer.cpp
 )
 target_include_directories(trafficsim_lib PUBLIC include)
+target_link_libraries(trafficsim_lib PUBLIC quill::quill)
 
 
 # main executable
@@ -89,7 +98,7 @@ target_link_libraries(trafficsim PRIVATE
 # tests
 add_executable(tests
     tests/main_test.cpp
-    tests/test_vec2.cpp
+    tests/test_vec2d.cpp
     tests/test_vehicle.cpp
     tests/test_idm.cpp
     tests/test_road_graph.cpp

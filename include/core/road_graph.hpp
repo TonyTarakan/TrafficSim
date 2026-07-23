@@ -6,7 +6,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "core/vec2.hpp"
+#include "core/vec2d.hpp"
 
 // Road network primitives: nodes, lanes, and the graph connecting them.
 // Supports multi-level interchanges via elevation (z) on nodes.
