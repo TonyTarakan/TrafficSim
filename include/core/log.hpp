@@ -2,8 +2,6 @@
 
 #include <quill/Logger.h>
 
-#include <string_view>
-
 // Thin wrapper around Quill, following Quill's own recommended integration
 // pattern: keep Backend/Frontend setup and sink/logger creation in one
 // small translation unit, so the rest of the app only needs the

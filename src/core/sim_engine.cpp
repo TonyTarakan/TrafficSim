@@ -1,10 +1,14 @@
 #include "core/sim_engine.hpp"
 
+#include <quill/LogMacros.h>
+
 #include <algorithm>
 #include <limits>
 
 #include "core/idm.hpp"
+#include "core/junction.hpp"
 #include "core/lane_change.hpp"
+#include "core/log.hpp"
 
 namespace ts {
 
@@ -39,8 +43,16 @@ SimEngine::SimEngine(SimConfig config) : config_(config) {}
 
 void SimEngine::set_map(std::vector<RoadNode> nodes, std::vector<Lane> lanes)
 {
+    LOG_INFO(log::get(), "map loaded: {} nodes, {} lanes", nodes.size(), lanes.size());
     graph_.rebuild(nodes, lanes);
     lanes_ = std::move(lanes);
+    nodes_ = std::move(nodes);
+}
+
+void SimEngine::set_junctions(std::vector<Junction> junctions)
+{
+    LOG_INFO(log::get(), "{} junction(s) loaded", junctions.size());
+    junctions_.rebuild(std::move(junctions));
 }
 
 std::optional<std::vector<LaneId>> SimEngine::compute_route(NodeId src, NodeId dst) const
@@ -97,7 +109,26 @@ void SimEngine::tick()
     for (std::size_t i = 0; i < vehicles_.size(); ++i) {
         Vehicle& v = vehicles_[i];
 
+        // check real leaders
         float accel = idm::accelerate(v.idm_params, v.speed, leaders[i]);
+
+        // A junction the current lane feeds into
+        // acts as a second, independent obstacle (virtual leader).
+        const Lane* cur_lane = find_lane(v.lane_id);
+        if (cur_lane) {  // TODO: is it OK when the vehicle is out of lane?
+
+            auto virt_leader = leader_to_yield(v, *cur_lane, junctions_, vehicles_, lanes_);
+            if (virt_leader) {
+                float junction_accel = idm::accelerate(v.idm_params, v.speed, virt_leader);
+                if (junction_accel < accel) {
+                    LOG_TRACE_L1(log::get(), "vehicle {} yields at junction, {:.1f}m to the line", v.id,
+                                 virt_leader->gap);
+                }
+
+                accel = std::min(accel, junction_accel);  // if we had a real leader, more restrictive obstacle wins
+            }
+        }
+
         float new_speed = std::max(0.f, v.speed + accel * config_.fixed_dt);  // speed >= 0
 
         v.offset += 0.5f * (v.speed + new_speed) * config_.fixed_dt;  // linear accel distance
@@ -116,8 +147,7 @@ void SimEngine::tick()
         float overflow = v.offset - cur_lane->length;
 
         if (v.route_idx + 1 >= v.route.size()) {
-            // Workaround. No despawn logic yet -- loop back to the
-            // start so demo vehicles keep driving indefinitely.
+            // Workaround. No despawn logic yet, loop back to the start
             v.route_idx = 0;
         }
         else {

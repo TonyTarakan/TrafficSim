@@ -6,7 +6,6 @@
 #include <quill/sinks/FileSink.h>
 
 #include <mutex>
-#include <string_view>
 #include <utility>
 
 namespace ts::log {

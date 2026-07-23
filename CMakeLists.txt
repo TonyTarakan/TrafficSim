@@ -67,6 +67,7 @@ FetchContent_MakeAvailable(quill)
 add_library(trafficsim_lib STATIC
     src/core/road_graph.cpp
     src/core/idm.cpp
+    src/core/junction.cpp
     src/core/sim_engine.cpp
     src/core/traffic_rules.cpp
     src/core/vehicle_params.cpp

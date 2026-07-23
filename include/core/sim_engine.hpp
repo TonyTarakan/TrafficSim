@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "concurrency/triple_buffer.hpp"
+#include "core/junction.hpp"
 #include "core/road_graph.hpp"
 #include "core/vehicle.hpp"
 
@@ -20,7 +21,7 @@ struct SimConfig {
     float fixed_dt{1.f / 50.f};  // seconds per tick (default 50 Hz)
 };
 
-// TODO: add proper intersections/junctions with line situation cross influence
+// TODO: proactive lane-changing ahead of merges/exits (look-ahead MOBIL bias)
 
 class SimEngine {
 public:
@@ -30,6 +31,7 @@ public:
     void tick();
 
     void set_map(std::vector<RoadNode> nodes, std::vector<Lane> lanes);
+    void set_junctions(std::vector<Junction> junctions);
 
     [[nodiscard]] std::optional<std::vector<LaneId>> compute_route(NodeId src, NodeId dst) const;
 
@@ -44,9 +46,11 @@ private:
     SimConfig config_;
     std::vector<Vehicle> vehicles_;
 
-    // TODO: do we need lanes_ or it can be fully replaced by graph_?
+    // TODO: do we need lanes_/nodes_ or it can be fully replaced by graph_?
     std::vector<Lane> lanes_;
+    std::vector<RoadNode> nodes_;
     RoadGraph graph_;
+    JunctionMap junctions_;
 
     double sim_time_{0.0};
 

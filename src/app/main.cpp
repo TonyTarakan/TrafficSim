@@ -8,8 +8,10 @@
 #include <print>
 #include <random>
 #include <thread>
+#include <utility>
 #include <vector>
 
+#include "core/junction.hpp"
 #include "core/log.hpp"
 #include "core/road_graph.hpp"
 #include "core/sim_engine.hpp"
@@ -51,10 +53,19 @@ std::vector<ts::RoadNode> make_demo_nodes()
 std::vector<ts::Lane> make_demo_lanes()
 {
     return {
-        {.id = 0, .from = 0, .to = 2, .length = 153.f, .speed_limit = 15.f, .num_sublanes = 2},
-        {.id = 1, .from = 1, .to = 2, .length = 153.f, .speed_limit = 15.f, .num_sublanes = 2},
-        {.id = 2, .from = 2, .to = 3, .length = 150.f, .speed_limit = 15.f, .num_sublanes = 2},
+        {.id = 0, .from = 0, .to = 2, .length = 153.f, .speed_limit = 15.f, .num_sublanes = 1},
+        {.id = 1, .from = 1, .to = 2, .length = 153.f, .speed_limit = 15.f, .num_sublanes = 1},
+        {.id = 2, .from = 2, .to = 3, .length = 150.f, .speed_limit = 15.f, .num_sublanes = 1},
     };
+}
+
+std::vector<ts::Junction> make_demo_junctions()
+{
+    ts::Junction j{};
+    j.node = 2;
+    j.incoming = {0, 1};
+    j.control = ts::PriorityControl{.yields_to = {{1, {0}}}};
+    return {j};
 }
 
 float generate_rand(float from, float to)
@@ -73,7 +84,7 @@ void spawn_stream(ts::SimEngine& engine, ts::LaneId origin_lane, ts::NodeId orig
         return;  // shouldn't happen with this demo network, but don't crash if it does
     }
 
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < 6; ++i) {
         float random_speed = generate_rand(5.0f, 10.0f);
 
         ts::Vehicle v{
@@ -82,8 +93,8 @@ void spawn_stream(ts::SimEngine& engine, ts::LaneId origin_lane, ts::NodeId orig
             .idm_params = ts::default_params(ts::VehicleType::Car),
             .speed = random_speed,
             .lane_id = origin_lane,
-            .offset = static_cast<float>(i) * 15.f,  // spread along the lane
-            .sublane_idx = i % 2,
+            .offset = static_cast<float>(i) * 10.f,  // spread along the lane
+            .sublane_idx = 0,                        // i % 2,
             .route = *route,
         };
         v.idm_params.desired_speed = random_speed;
@@ -124,9 +135,11 @@ int main(int /*argc*/, char** /*argv*/)
     // --- demo scene setup ---
     std::vector<ts::RoadNode> nodes = make_demo_nodes();
     std::vector<ts::Lane> lanes = make_demo_lanes();
+    std::vector<ts::Junction> junctions = make_demo_junctions();
 
     ts::SimEngine engine;
     engine.set_map(nodes, lanes);
+    engine.set_junctions(std::move(junctions));
     spawn_demo_vehicles(engine);
 
     ts::Renderer renderer{sdl_renderer};
