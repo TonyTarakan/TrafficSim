@@ -68,6 +68,8 @@ const Lane* SimEngine::find_lane(LaneId id) const
 
 void SimEngine::tick()
 {
+    junctions_.advance_signals(config_.fixed_dt);
+
     // --- lane-change decisions, on the pre-tick snapshot ---
     // Must happen before any IDM mutation below: MOBIL needs to see the
     // same consistent "world" for every vehicle, same reasoning as the

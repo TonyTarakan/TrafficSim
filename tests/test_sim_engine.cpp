@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include "core/junction.hpp"
 #include "core/sim_engine.hpp"
 #include "core/vehicle_params.hpp"
 
@@ -105,4 +106,77 @@ TEST(SimEngine, SimTimeAdvancesByFixedDt)
 
     engine.tick();
     EXPECT_NEAR(engine.sim_time(), 0.04, 1e-6);
+}
+
+TEST(SimEngine, VehicleStopsAtRedLightJunction)
+{
+    SimEngine engine;
+
+    std::vector<RoadNode> nodes = {
+        {.id = 0, .pos = {.x = 0.f, .y = 0.f}},
+        {.id = 1, .pos = {.x = 100.f, .y = 0.f}},  // junction node
+        {.id = 2, .pos = {.x = 200.f, .y = 0.f}},
+    };
+    std::vector<Lane> lanes = {
+        {.id = 0, .from = 0, .to = 1, .length = 100.f, .speed_limit = 20.f, .num_sublanes = 1},
+        {.id = 1, .from = 1, .to = 2, .length = 100.f, .speed_limit = 20.f, .num_sublanes = 1},
+    };
+    engine.set_map(nodes, lanes);
+
+    // Lane 0's phase never comes up -- an always-red light for this approach.
+    Junction junction{.node = 1,
+                      .incoming = {0},
+                      .control = TrafficLightControl{.phases = {{.green_lanes = {}, .duration = 1000.f}}}};
+    engine.set_junctions({junction});
+
+    Vehicle v{.id = 0, .idm_params = default_params(VehicleType::Car), .speed = 15.f, .lane_id = 0, .offset = 40.f};
+    engine.vehicles().push_back(v);
+
+    for (int i = 0; i < 1000; ++i) {  // 20s at 50Hz -- plenty of time to reach and stop at the line
+        engine.tick();
+        ASSERT_LE(engine.vehicles()[0].offset, lanes[0].length) << "vehicle ran the red light at tick " << i;
+    }
+
+    EXPECT_NEAR(engine.vehicles()[0].speed, 0.f, 0.5f);
+    EXPECT_GT(engine.vehicles()[0].offset, 90.f);   // got close to the stop line...
+    EXPECT_LE(engine.vehicles()[0].offset, 100.f);  // ...but didn't cross it
+}
+
+TEST(SimEngine, VehicleYieldsToPriorityCrossTraffic)
+{
+    SimEngine engine;
+
+    std::vector<RoadNode> nodes = {
+        {.id = 0, .pos = {.x = 0.f, .y = 0.f}},    // minor road start
+        {.id = 1, .pos = {.x = 50.f, .y = 0.f}},   // junction node
+        {.id = 2, .pos = {.x = 100.f, .y = 0.f}},  // minor road continues
+        {.id = 3, .pos = {.x = 0.f, .y = 50.f}},   // main road start
+        {.id = 4, .pos = {.x = 0.f, .y = -50.f}},  // main road continues
+    };
+    std::vector<Lane> lanes = {
+        {.id = 0, .from = 0, .to = 1, .length = 50.f, .speed_limit = 20.f, .num_sublanes = 1},  // minor in
+        {.id = 1, .from = 1, .to = 2, .length = 50.f, .speed_limit = 20.f, .num_sublanes = 1},  // minor out
+        {.id = 2, .from = 3, .to = 1, .length = 50.f, .speed_limit = 20.f, .num_sublanes = 1},  // main in
+        {.id = 3, .from = 1, .to = 4, .length = 50.f, .speed_limit = 20.f, .num_sublanes = 1},  // main out
+    };
+    engine.set_map(nodes, lanes);
+
+    Junction junction{.node = 1,
+                      .incoming = {0, 2},
+                      .control = PriorityControl{.yields_to = {{0, {2}}}}};  // minor (0) yields to main (2)
+    engine.set_junctions({junction});
+
+    // Minor-road vehicle approaching the stop line...
+    Vehicle minor{.id = 0, .idm_params = default_params(VehicleType::Car), .speed = 10.f, .lane_id = 0, .offset = 40.f};
+    // ...while a main-road vehicle is mid-crossing, well inside the gap-acceptance window.
+    Vehicle main{.id = 1, .idm_params = default_params(VehicleType::Car), .speed = 10.f, .lane_id = 2, .offset = 40.f};
+
+    engine.vehicles().push_back(minor);
+    engine.vehicles().push_back(main);
+
+    for (int i = 0; i < 100; ++i) {  // 2s -- main-road car should already be through, minor should still wait
+        engine.tick();
+    }
+
+    EXPECT_LE(engine.vehicles()[0].offset, 50.f) << "minor-road vehicle entered the junction while it had to yield";
 }

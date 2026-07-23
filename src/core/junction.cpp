@@ -4,7 +4,17 @@
 
 #include <algorithm>
 
+#include "core/log.hpp"
+
 namespace ts {
+
+bool TrafficLightControl::is_green(LaneId lane) const
+{
+    if (phases.empty()) return true;
+
+    const SignalPhase& current = phases[phase_idx % phases.size()];
+    return (std::ranges::find(current.green_lanes, lane) != current.green_lanes.end());
+}
 
 void JunctionMap::rebuild(std::vector<Junction> junctions)
 {
@@ -34,6 +44,24 @@ const Junction* JunctionMap::find_by_lane(LaneId incoming_lane) const
     if (it == index_by_lane_.end()) return nullptr;
 
     return &junctions_[it->second];
+}
+
+// TODO: maybe ticks, not seconds?
+void JunctionMap::advance_signals(float dt)
+{
+    for (auto& junction : junctions_) {
+        auto* light_ctl = std::get_if<TrafficLightControl>(&junction.control);
+        if (!light_ctl) continue;
+        if (light_ctl->phases.empty()) continue;
+
+        light_ctl->phase_elapsed += dt;
+        const SignalPhase& current = light_ctl->phases[light_ctl->phase_idx % light_ctl->phases.size()];
+        if (light_ctl->phase_elapsed >= current.duration) {
+            light_ctl->phase_elapsed -= current.duration;
+            light_ctl->phase_idx = (light_ctl->phase_idx + 1) % light_ctl->phases.size();
+            LOG_INFO(log::get(), "junction {} signal advanced to phase {}", junction.node, light_ctl->phase_idx);
+        }
+    }
 }
 
 namespace {
@@ -130,9 +158,8 @@ std::optional<idm::LeaderInfo> leader_to_yield(const Vehicle& ego, const Lane& e
             return false;
         },
 
-        [&](const TrafficLightControl& ) {
-            // TODO: implement
-            return false;
+        [&](const TrafficLightControl& control) { 
+            return !control.is_green(ego_lane.id); 
         },
 
         [&](const PriorityControl& control) {

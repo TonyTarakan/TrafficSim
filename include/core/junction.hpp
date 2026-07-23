@@ -28,8 +28,21 @@ struct PriorityControl {
     std::unordered_map<LaneId, std::vector<LaneId>> yields_to;  // Lane yields to others
 };
 
+// Only one lane has green light for duration seconds
+struct SignalPhase {
+    std::vector<LaneId> green_lanes;
+    float duration{30.f};  // seconds
+};
+
+// Cyclic green light
 struct TrafficLightControl {
-    // TODO
+    std::vector<SignalPhase> phases;
+    std::size_t phase_idx{0};
+    float phase_elapsed{0.f};  // seconds into the current phase
+
+    // No phases configured => treat as always-green
+    // TODO: add support for flashing yellow (unregulated/priority fallback)
+    [[nodiscard]] bool is_green(LaneId lane) const;
 };
 
 using JunctionControl = std::variant<UnregulatedControl, PriorityControl, TrafficLightControl>;
@@ -47,6 +60,9 @@ public:
 
     [[nodiscard]] const Junction* find_by_node(NodeId node_id) const;
     [[nodiscard]] const Junction* find_by_lane(LaneId incoming_lane_id) const;
+
+    // Advance every tick by dt seconds.
+    void advance_signals(float dt);
 
     [[nodiscard]] std::span<const Junction> all() const noexcept { return junctions_; }
 

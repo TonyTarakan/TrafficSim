@@ -103,6 +103,7 @@ add_executable(tests
     tests/test_vehicle.cpp
     tests/test_idm.cpp
     tests/test_road_graph.cpp
+    tests/test_junction.cpp
     tests/test_sim_engine.cpp
     tests/test_lane_change.cpp
     tests/test_lane_transition.cpp
