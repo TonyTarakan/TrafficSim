@@ -7,7 +7,7 @@ namespace ts {
 
 namespace {
 
-constexpr float kSublaneWidthM = 3.5f;  // typical lane width, metres
+constexpr float kSublaneWidthM = 4.0f;  // typical lane width, metres
 
 const RoadNode* find_node(std::span<const RoadNode> nodes, NodeId id)
 {
@@ -51,7 +51,8 @@ void Renderer::draw_lanes(std::span<const RoadNode> nodes, std::span<const Lane>
         Vec2D perp = lane_perpendicular(from->pos, to->pos);
 
         // One line per sublane, so a multi-lane road actually looks like one.
-        for (std::uint8_t sub = 0; sub < lane.num_sublanes; ++sub) {
+        // TODO: fix offsets for overlapping lanes
+        for (std::uint8_t sub = 1; sub < lane.num_sublanes + 1; ++sub) {
             Vec2D lane_offset = perp * (static_cast<float>(sub) * kSublaneWidthM);
             Vec2D p1 = camera.to_screen(from->pos + lane_offset);
             Vec2D p2 = camera.to_screen(to->pos + lane_offset);
@@ -65,7 +66,7 @@ void Renderer::draw_vehicles(std::span<const Vehicle> vehicles, std::span<const 
 {
     SDL_SetRenderDrawColor(sdl_renderer_, 220, 180, 60, 255);
 
-    constexpr float kVehicleSizePx = 8.f;
+    constexpr float kVehicleSizePx = 8.f;  // TODO: meters?
 
     for (const auto& v : vehicles) {
         const Lane* lane = find_lane(lanes, v.lane_id);
@@ -81,7 +82,7 @@ void Renderer::draw_vehicles(std::span<const Vehicle> vehicles, std::span<const 
 
         // Offset (parallelogram sum)
         Vec2D perp = lane_perpendicular(from->pos, to->pos);
-        Vec2D world_pos = lane_pos + perp * (static_cast<float>(v.sublane_idx) * kSublaneWidthM);
+        Vec2D world_pos = lane_pos + perp * (static_cast<float>(v.sublane_idx + 1) * kSublaneWidthM);
 
         Vec2D screen_pos = camera.to_screen(world_pos);
 

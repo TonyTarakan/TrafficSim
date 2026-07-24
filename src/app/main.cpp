@@ -1,5 +1,6 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
+#include <SDL3/SDL_video.h>
 #include <imgui.h>
 #include <imgui_impl_sdl3.h>
 #include <imgui_impl_sdlrenderer3.h>
@@ -89,35 +90,50 @@ constexpr ts::LaneId kLaneJ3_N3 = 19;
 std::vector<ts::RoadNode> make_demo_nodes()
 {
     return {
-        {.id = kNodeW, .pos = {.x = -150.f, .y = 300.f}},
-        {.id = kNodeJ1, .pos = {.x = 0.f, .y = 300.f}},
-        {.id = kNodeJ2, .pos = {.x = 300.f, .y = 300.f}},
-        {.id = kNodeJ3, .pos = {.x = 600.f, .y = 300.f}},
-        {.id = kNodeE, .pos = {.x = 750.f, .y = 300.f}},
-        {.id = kNodeN1, .pos = {.x = 0.f, .y = 120.f}},
-        {.id = kNodeS1, .pos = {.x = 0.f, .y = 480.f}},
-        {.id = kNodeN2, .pos = {.x = 300.f, .y = 120.f}},
-        {.id = kNodeS2, .pos = {.x = 300.f, .y = 480.f}},
-        {.id = kNodeN3, .pos = {.x = 600.f, .y = 120.f}},
+        {.id = kNodeW, .pos = {.x = -150.f, .y = 300.f}}, {.id = kNodeJ1, .pos = {.x = 0.f, .y = 300.f}},
+        {.id = kNodeJ2, .pos = {.x = 300.f, .y = 300.f}}, {.id = kNodeJ3, .pos = {.x = 600.f, .y = 300.f}},
+        {.id = kNodeE, .pos = {.x = 750.f, .y = 300.f}},  {.id = kNodeN1, .pos = {.x = 0.f, .y = 120.f}},
+        {.id = kNodeS1, .pos = {.x = 0.f, .y = 480.f}},   {.id = kNodeN2, .pos = {.x = 300.f, .y = 120.f}},
+        {.id = kNodeS2, .pos = {.x = 300.f, .y = 480.f}}, {.id = kNodeN3, .pos = {.x = 600.f, .y = 120.f}},
         {.id = kNodeS3, .pos = {.x = 600.f, .y = 480.f}},
     };
 }
 
 std::vector<ts::Lane> make_demo_lanes()
 {
-    constexpr float kMainSpeed = 15.f;
-    constexpr float kCrossSpeed = 12.f;
+    constexpr float kMainSpeed = 30.f;
+    constexpr float kCrossSpeed = 20.f;
 
     return {
         // Main road, both directions, straight through J1/J2/J3.
-        {.id = kLaneW_J1, .from = kNodeW, .to = kNodeJ1, .length = 150.f, .speed_limit = kMainSpeed},
-        {.id = kLaneJ1_J2, .from = kNodeJ1, .to = kNodeJ2, .length = 300.f, .speed_limit = kMainSpeed},
-        {.id = kLaneJ2_J3, .from = kNodeJ2, .to = kNodeJ3, .length = 300.f, .speed_limit = kMainSpeed},
-        {.id = kLaneJ3_E, .from = kNodeJ3, .to = kNodeE, .length = 150.f, .speed_limit = kMainSpeed},
-        {.id = kLaneE_J3, .from = kNodeE, .to = kNodeJ3, .length = 150.f, .speed_limit = kMainSpeed},
-        {.id = kLaneJ3_J2, .from = kNodeJ3, .to = kNodeJ2, .length = 300.f, .speed_limit = kMainSpeed},
-        {.id = kLaneJ2_J1, .from = kNodeJ2, .to = kNodeJ1, .length = 300.f, .speed_limit = kMainSpeed},
-        {.id = kLaneJ1_W, .from = kNodeJ1, .to = kNodeW, .length = 150.f, .speed_limit = kMainSpeed},
+        {.id = kLaneW_J1, .from = kNodeW, .to = kNodeJ1, .length = 150.f, .speed_limit = kMainSpeed, .num_sublanes = 2},
+        {.id = kLaneJ1_J2,
+         .from = kNodeJ1,
+         .to = kNodeJ2,
+         .length = 300.f,
+         .speed_limit = kMainSpeed,
+         .num_sublanes = 2},
+        {.id = kLaneJ2_J3,
+         .from = kNodeJ2,
+         .to = kNodeJ3,
+         .length = 300.f,
+         .speed_limit = kMainSpeed,
+         .num_sublanes = 2},
+        {.id = kLaneJ3_E, .from = kNodeJ3, .to = kNodeE, .length = 150.f, .speed_limit = kMainSpeed, .num_sublanes = 2},
+        {.id = kLaneE_J3, .from = kNodeE, .to = kNodeJ3, .length = 150.f, .speed_limit = kMainSpeed, .num_sublanes = 2},
+        {.id = kLaneJ3_J2,
+         .from = kNodeJ3,
+         .to = kNodeJ2,
+         .length = 300.f,
+         .speed_limit = kMainSpeed,
+         .num_sublanes = 2},
+        {.id = kLaneJ2_J1,
+         .from = kNodeJ2,
+         .to = kNodeJ1,
+         .length = 300.f,
+         .speed_limit = kMainSpeed,
+         .num_sublanes = 2},
+        {.id = kLaneJ1_W, .from = kNodeJ1, .to = kNodeW, .length = 150.f, .speed_limit = kMainSpeed, .num_sublanes = 2},
 
         // Cross street at J1 -- unregulated.
         {.id = kLaneN1_J1, .from = kNodeN1, .to = kNodeJ1, .length = 180.f, .speed_limit = kCrossSpeed},
@@ -208,8 +224,8 @@ void spawn_stream(ts::SimEngine& engine, ts::NodeId origin_node, ts::NodeId dest
 void spawn_demo_vehicles(ts::SimEngine& engine)
 {
     // Main road through traffic, both directions -- crosses all three junctions.
-    spawn_stream(engine, kNodeW, kNodeE, /*id_start=*/0, /*count=*/5);
-    spawn_stream(engine, kNodeE, kNodeW, /*id_start=*/1000, /*count=*/5);
+    spawn_stream(engine, kNodeW, kNodeE, /*id_start=*/0, /*count=*/10);
+    spawn_stream(engine, kNodeE, kNodeW, /*id_start=*/1000, /*count=*/10);
 
     // Cross traffic at J1 (unregulated).
     spawn_stream(engine, kNodeN1, kNodeS1, /*id_start=*/2000, /*count=*/3);
@@ -220,8 +236,8 @@ void spawn_demo_vehicles(ts::SimEngine& engine)
     spawn_stream(engine, kNodeS2, kNodeN2, /*id_start=*/5000, /*count=*/3);
 
     // Cross traffic at J3 (traffic light).
-    spawn_stream(engine, kNodeN3, kNodeS3, /*id_start=*/6000, /*count=*/3);
-    spawn_stream(engine, kNodeS3, kNodeN3, /*id_start=*/7000, /*count=*/3);
+    spawn_stream(engine, kNodeN3, kNodeS3, /*id_start=*/6000, /*count=*/4);
+    spawn_stream(engine, kNodeS3, kNodeN3, /*id_start=*/7000, /*count=*/4);
 }
 
 }  // namespace
@@ -237,7 +253,7 @@ int main(int /*argc*/, char** /*argv*/)
         return 1;
     }
 
-    SDL_Window* window = SDL_CreateWindow("TrafficSim", 1280, 720, SDL_WINDOW_RESIZABLE);
+    SDL_Window* window = SDL_CreateWindow("TrafficSim", 1280, 720, SDL_WINDOW_RESIZABLE | SDL_WINDOW_MAXIMIZED);
     SDL_Renderer* sdl_renderer = SDL_CreateRenderer(window, nullptr);
     SDL_SetRenderVSync(sdl_renderer, 1);
 
@@ -260,8 +276,8 @@ int main(int /*argc*/, char** /*argv*/)
 
     ts::Renderer renderer{sdl_renderer};
     ts::Camera camera;
-    camera.offset = {.x = -200.f, .y = -80.f};  // fit the W..E / N..S extent with some margin
-    camera.zoom = 1.2f;
+    camera.offset = {.x = -170.f, .y = 0.f};  // fit the W..E / N..S extent with some margin
+    camera.zoom = 2.0f;
 
     std::atomic<bool> running = true;
 
