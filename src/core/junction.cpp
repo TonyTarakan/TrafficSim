@@ -17,16 +17,52 @@ bool TrafficLightControl::is_green(LaneId lane) const
     return (std::ranges::find(current.green_lanes, lane) != current.green_lanes.end());
 }
 
-void JunctionMap::rebuild(std::vector<Junction> junctions)
+namespace {
+
+const RoadNode* find_node(NodeId id, std::span<const RoadNode> nodes)
+{
+    auto it = std::ranges::find(nodes, id, &RoadNode::id);
+    return (it != nodes.end()) ? &*it : nullptr;
+}
+
+const Lane* find_lane(LaneId id, std::span<const Lane> lanes)
+{
+    auto it = std::ranges::find(lanes, id, &Lane::id);
+    return (it != lanes.end()) ? &*it : nullptr;
+}
+
+}  // namespace
+
+void JunctionMap::rebuild(std::vector<Junction> junctions, std::span<const RoadNode> nodes, std::span<const Lane> lanes)
 {
     junctions_ = std::move(junctions);
     index_by_node_.clear();
     index_by_lane_.clear();
 
     for (std::size_t i = 0; i < junctions_.size(); ++i) {
-        index_by_node_[junctions_[i].node_id] = i;
-        for (LaneId lane : junctions_[i].incoming) {
-            index_by_lane_[lane] = i;
+        Junction& junction = junctions_[i];
+        index_by_node_[junction.node_id] = i;
+
+        if (const RoadNode* node = find_node(junction.node_id, nodes)) {
+            junction.pos = node->pos;
+        }
+        else {
+            LOG_WARNING(log::get(), "junction references unknown node {}", junction.node_id);
+        }
+
+        junction.lines_from.clear();
+        for (LaneId lane_id : junction.incoming) {
+            index_by_lane_[lane_id] = i;
+
+            const Lane* lane = find_lane(lane_id, lanes);
+            const RoadNode* from_node = lane ? find_node(lane->from, nodes) : nullptr;
+            if (from_node) {
+                junction.lines_from[lane_id] = from_node->pos;
+            }
+            else {
+                LOG_WARNING(log::get(), "junction {}: can't resolve approach geometry for lane {}", junction.node_id,
+                            lane_id);
+            }
         }
     }
 }
@@ -131,12 +167,37 @@ bool yields_to_rivals(const Junction& junction, VehicleId ego_id, std::span<cons
     return false;
 }
 
-// The other incoming lanes at the junction that 'ego_lane' must yield to.
-std::vector<LaneId> right_hand_rivals(const Junction&, const Lane&)
+bool approaches_from_the_right(Vec2D junction_pos, Vec2D ego_from, Vec2D rival_from)
+{
+    constexpr float kRightHandEpsilon = 1e-3f;  // avoids ties on parallel courses
+
+    Vec2D ego_heading = junction_pos - ego_from;
+    Vec2D ego_right{.x = -ego_heading.y, .y = ego_heading.x};
+
+    Vec2D rival_origin_dir = rival_from - junction_pos;  // where the rival is coming from, relative to us
+    return ego_right.dot_prod(rival_origin_dir) > kRightHandEpsilon;
+}
+
+// Uses cached geometry of lanes.
+std::vector<LaneId> right_hand_rivals(const Junction& junction, const Lane& ego_lane)
 {
     std::vector<LaneId> rivals;
 
-    // TODO
+    auto ego_from_it = junction.lines_from.find(ego_lane.id);
+    if (ego_from_it == junction.lines_from.end()) {
+        return rivals;  // no cached geometry for this approach, nobody to yield to
+    }
+
+    for (LaneId other_id : junction.incoming) {
+        if (other_id == ego_lane.id) continue;
+
+        auto rival_from_it = junction.lines_from.find(other_id);
+        if (rival_from_it == junction.lines_from.end()) continue;
+
+        if (approaches_from_the_right(junction.pos, ego_from_it->second, rival_from_it->second)) {
+            rivals.push_back(other_id);
+        }
+    }
 
     return rivals;
 }

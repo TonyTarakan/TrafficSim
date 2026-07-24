@@ -31,6 +31,10 @@ public:
     void tick();
 
     void set_map(std::vector<RoadNode> nodes, std::vector<Lane> lanes);
+
+    // TODO: resolve dependencies
+    // 'set_junctions' requires set_map() to have been called first.
+    // Junction geometry is resolved against the node/lane data.
     void set_junctions(std::vector<Junction> junctions);
 
     [[nodiscard]] std::optional<std::vector<LaneId>> compute_route(NodeId src, NodeId dst) const;

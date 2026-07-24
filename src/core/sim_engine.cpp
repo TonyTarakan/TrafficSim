@@ -52,7 +52,7 @@ void SimEngine::set_map(std::vector<RoadNode> nodes, std::vector<Lane> lanes)
 void SimEngine::set_junctions(std::vector<Junction> junctions)
 {
     LOG_INFO(log::get(), "{} junction(s) loaded", junctions.size());
-    junctions_.rebuild(std::move(junctions));
+    junctions_.rebuild(std::move(junctions), nodes_, lanes_);
 }
 
 std::optional<std::vector<LaneId>> SimEngine::compute_route(NodeId src, NodeId dst) const

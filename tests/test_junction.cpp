@@ -77,7 +77,7 @@ TEST(TrafficLightControl, AdvanceSignalsCyclesPhases)
                                     }};
 
     JunctionMap map;
-    map.rebuild({j});
+    map.rebuild({j}, {}, {});
 
     map.advance_signals(10.f);  // exactly one phase length
 
@@ -95,13 +95,49 @@ TEST(JunctionMap, FindByNodeAndLane)
     j.incoming = {0, 1};
 
     JunctionMap map;
-    map.rebuild({j});
+    map.rebuild({j}, {}, {});
 
     EXPECT_EQ(map.find_by_node(10)->node_id, 10u);
     EXPECT_EQ(map.find_by_lane(0)->node_id, 10u);
     EXPECT_EQ(map.find_by_lane(1)->node_id, 10u);
     EXPECT_EQ(map.find_by_node(999), nullptr);
     EXPECT_EQ(map.find_by_lane(999), nullptr);
+}
+
+TEST(JunctionMap, RebuildResolvesGeometryFromNodesAndLanes)
+{
+    CrossroadsFixture f;
+    Junction j{.node_id = 10, .incoming = {0, 1}};
+
+    JunctionMap map;
+    map.rebuild({j}, f.all_nodes(), f.all_lanes());
+
+    const Junction* resolved = map.find_by_node(10);
+    ASSERT_NE(resolved, nullptr);
+    EXPECT_FLOAT_EQ(resolved->pos.x, 0.f);
+    EXPECT_FLOAT_EQ(resolved->pos.y, 0.f);
+
+    auto east_from = resolved->lines_from.find(0);
+    ASSERT_NE(east_from, resolved->lines_from.end());
+    EXPECT_FLOAT_EQ(east_from->second.x, 50.f);
+    EXPECT_FLOAT_EQ(east_from->second.y, 0.f);
+
+    auto north_from = resolved->lines_from.find(1);
+    ASSERT_NE(north_from, resolved->lines_from.end());
+    EXPECT_FLOAT_EQ(north_from->second.x, 0.f);
+    EXPECT_FLOAT_EQ(north_from->second.y, -50.f);
+}
+
+TEST(JunctionMap, RebuildLeavesGeometryUnresolvedForUnknownIds)
+{
+    Junction j{.node_id = 999, .incoming = {123}};  // nothing in the (empty) map matches
+
+    JunctionMap map;
+    map.rebuild({j}, {}, {});  // no nodes/lanes -- shouldn't crash, just leaves defaults
+
+    const Junction* resolved = map.find_by_node(999);
+    ASSERT_NE(resolved, nullptr);
+    EXPECT_TRUE(resolved->lines_from.empty());
 }
 
 TEST(FindJunctionYield, PriorityLaneWithNoRivalsProceeds)
@@ -111,7 +147,7 @@ TEST(FindJunctionYield, PriorityLaneWithNoRivalsProceeds)
                .incoming = {0, 1},
                .control = PriorityControl{.yields_to = {{1, {0}}}}};  // lane 1 yields to lane 0
     JunctionMap map;
-    map.rebuild({j});
+    map.rebuild({j}, f.all_nodes(), f.all_lanes());
 
     // Ego is on lane 0, the main road -- not in anyone's yields_to list.
     Vehicle ego{.id = 0, .lane_id = 0, .offset = 45.f};
@@ -124,7 +160,7 @@ TEST(FindJunctionYield, MinorLaneYieldsToCloseRival)
     CrossroadsFixture f;
     Junction j{.node_id = 10, .incoming = {0, 1}, .control = PriorityControl{.yields_to = {{1, {0}}}}};
     JunctionMap map;
-    map.rebuild({j});
+    map.rebuild({j}, f.all_nodes(), f.all_lanes());
 
     Vehicle ego{.id = 1, .lane_id = 1, .offset = 45.f};                   // on the minor approach, 5m from the line
     Vehicle rival{.id = 0, .speed = 10.f, .lane_id = 0, .offset = 30.f};  // 20m out, 2s to the line
@@ -141,7 +177,7 @@ TEST(FindJunctionYield, MinorLaneProceedsWhenGapIsWideEnough)
     CrossroadsFixture f;
     Junction j{.node_id = 10, .incoming = {0, 1}, .control = PriorityControl{.yields_to = {{1, {0}}}}};
     JunctionMap map;
-    map.rebuild({j});
+    map.rebuild({j}, f.all_nodes(), f.all_lanes());
 
     Vehicle ego{.id = 1, .lane_id = 1, .offset = 45.f};
     // Rival is 40m out doing 5 m/s -- 8s to the line, comfortably over the 4s gap threshold.
@@ -157,7 +193,7 @@ TEST(FindJunctionYield, YieldsWhileJunctionBoxIsOccupied)
     CrossroadsFixture f;
     Junction j{.node_id = 10, .incoming = {0, 1}, .control = PriorityControl{.yields_to = {{1, {0}}}}};
     JunctionMap map;
-    map.rebuild({j});
+    map.rebuild({j}, f.all_nodes(), f.all_lanes());
 
     Vehicle ego{.id = 1, .lane_id = 1, .offset = 45.f};
     // Someone is already crossing, freshly out of the junction on the east-out lane.
@@ -178,7 +214,7 @@ TEST(FindJunctionYield, RedLightForcesStop)
                                                   {.green_lanes = {1}, .duration = 10.f},
                                               }}};
     JunctionMap map;
-    map.rebuild({j});
+    map.rebuild({j}, f.all_nodes(), f.all_lanes());
 
     Vehicle ego{.id = 1, .lane_id = 1, .offset = 45.f};  // lane 1 is red in phase 0
     auto result = leader_to_yield(ego, f.north_in, map, {}, f.all_lanes());
@@ -196,9 +232,80 @@ TEST(FindJunctionYield, GreenLightProceeds)
                                                   {.green_lanes = {1}, .duration = 10.f},
                                               }}};
     JunctionMap map;
-    map.rebuild({j});
+    map.rebuild({j}, f.all_nodes(), f.all_lanes());
 
     Vehicle ego{.id = 0, .lane_id = 0, .offset = 45.f};  // lane 0 is green in phase 0
     auto result = leader_to_yield(ego, f.east_in, map, {}, f.all_lanes());
+    EXPECT_FALSE(result.has_value());
+}
+
+TEST(FindJunctionYield, UnregulatedYieldsToTrafficOnTheRight)
+{
+    CrossroadsFixture f;
+    Junction j{.node_id = 10, .incoming = {0, 1, 4, 5}, .control = UnregulatedControl{}};
+    JunctionMap map;
+    map.rebuild({j}, f.all_nodes(), f.all_lanes());
+
+    // Facing west (east_in), the right-hand side is north -- ego must
+    // yield to a car approaching from the north (north_in), even though
+    // it isn't the closest thing around.
+    Vehicle ego{.id = 0, .lane_id = 0, .offset = 45.f};
+    // 15m out at 5 m/s -- 3s to the line, under the 4s gap threshold.
+    Vehicle from_north{.id = 1, .speed = 5.f, .lane_id = 1, .offset = 35.f};
+
+    std::vector<Vehicle> vehicles = {ego, from_north};
+    auto result = leader_to_yield(ego, f.east_in, map, vehicles, f.all_lanes());
+    ASSERT_TRUE(result.has_value());
+    EXPECT_NEAR(result->gap, 5.f, 1e-3f);
+}
+
+TEST(FindJunctionYield, UnregulatedDoesNotYieldToTrafficOnTheLeft)
+{
+    CrossroadsFixture f;
+    Junction j{.node_id = 10, .incoming = {0, 1, 4, 5}, .control = UnregulatedControl{}};
+    JunctionMap map;
+    map.rebuild({j}, f.all_nodes(), f.all_lanes());
+
+    // Facing west (east_in), south is on ego's left -- no yield owed,
+    // even with a rival right on top of the line.
+    Vehicle ego{.id = 0, .lane_id = 0, .offset = 45.f};
+    Vehicle from_south{.id = 1, .speed = 5.f, .lane_id = 5, .offset = 49.f};
+
+    std::vector<Vehicle> vehicles = {ego, from_south};
+    auto result = leader_to_yield(ego, f.east_in, map, vehicles, f.all_lanes());
+    EXPECT_FALSE(result.has_value());
+}
+
+TEST(FindJunctionYield, UnregulatedDoesNotYieldToOncomingTraffic)
+{
+    CrossroadsFixture f;
+    Junction j{.node_id = 10, .incoming = {0, 1, 4, 5}, .control = UnregulatedControl{}};
+    JunctionMap map;
+    map.rebuild({j}, f.all_nodes(), f.all_lanes());
+
+    // east_in and west_in are a straight-through opposing pair -- neither
+    // owes the other a yield under priority-to-the-right.
+    Vehicle ego{.id = 0, .lane_id = 0, .offset = 45.f};
+    Vehicle oncoming{.id = 1, .speed = 5.f, .lane_id = 4, .offset = 45.f};
+
+    std::vector<Vehicle> vehicles = {ego, oncoming};
+    auto result = leader_to_yield(ego, f.east_in, map, vehicles, f.all_lanes());
+    EXPECT_FALSE(result.has_value());
+}
+
+TEST(FindJunctionYield, UnregulatedIsNonReciprocal)
+{
+    // The car that has the right of way must not also yield to the car
+    // that's yielding to it.
+    CrossroadsFixture f;
+    Junction j{.node_id = 10, .incoming = {0, 1, 4, 5}, .control = UnregulatedControl{}};
+    JunctionMap map;
+    map.rebuild({j}, f.all_nodes(), f.all_lanes());
+
+    Vehicle from_north{.id = 1, .lane_id = 1, .offset = 45.f};
+    Vehicle ego{.id = 0, .speed = 5.f, .lane_id = 0, .offset = 20.f};  // east_in, well within the window
+
+    std::vector<Vehicle> vehicles = {ego, from_north};
+    auto result = leader_to_yield(from_north, f.north_in, map, vehicles, f.all_lanes());
     EXPECT_FALSE(result.has_value());
 }

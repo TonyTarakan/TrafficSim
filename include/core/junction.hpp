@@ -52,8 +52,7 @@ struct Junction {
     std::vector<LaneId> incoming;
     JunctionControl control{UnregulatedControl{}};
 
-    // TODO: fix this workaround
-    // We need to preserve the invariant with node_id and incoming lanes
+    // Geometry cache, filled in by JunctionMap::rebuild()
     Vec2D pos{};
     std::unordered_map<LaneId, Vec2D> lines_from{};
 };
@@ -61,7 +60,9 @@ struct Junction {
 // Registry of all junctions on the current map.
 class JunctionMap {
 public:
-    void rebuild(std::vector<Junction> junctions);
+    // 'nodes'/'lanes' are the same map data passed to RoadGraph::rebuild();
+    // used once here to resolve each junction, not stored afterwards.
+    void rebuild(std::vector<Junction> junctions, std::span<const RoadNode> nodes, std::span<const Lane> lanes);
 
     [[nodiscard]] const Junction* find_by_node(NodeId node_id) const;
     [[nodiscard]] const Junction* find_by_lane(LaneId incoming_lane_id) const;
