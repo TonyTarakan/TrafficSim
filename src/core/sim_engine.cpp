@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <limits>
+#include <random>
 
 #include "core/idm.hpp"
 #include "core/junction.hpp"
@@ -66,6 +67,17 @@ const Lane* SimEngine::find_lane(LaneId id) const
     return (it != lanes_.end()) ? &*it : nullptr;
 }
 
+namespace {
+float generate_rand(float from, float to)
+{
+    static std::random_device rd;
+    static std::mt19937 rng{rd()};  // генератор
+    static std::uniform_real_distribution<float> dist{from, to};
+
+    return dist(rng);
+}
+}  // namespace
+
 void SimEngine::tick()
 {
     junctions_.advance_signals(config_.fixed_dt);
@@ -76,7 +88,7 @@ void SimEngine::tick()
     // leader snapshot further down. Only sublane_idx is mutated here —
     // speed/offset stay untouched until the IDM pass, so that pass's own
     // snapshot-then-apply logic is unaffected.
-    constexpr float kLaneChangeCooldownS = 3.f;  // seconds before re-evaluating // TODO: make random
+
     using namespace lane_change;
 
     std::vector<Turn> sublane_deltas(vehicles_.size(), Turn::NONE);
@@ -93,7 +105,7 @@ void SimEngine::tick()
         if (sublane_deltas[i] != Turn::NONE) {
             int new_sublane = static_cast<int>(v.sublane_idx) + static_cast<int>(sublane_deltas[i]);
             v.sublane_idx = static_cast<std::uint8_t>(new_sublane);
-            v.lane_change_cooldown = kLaneChangeCooldownS;
+            v.lane_change_cooldown = generate_rand(3.0f, 4.0f);
         }
         else {
             v.lane_change_cooldown = std::max(0.f, v.lane_change_cooldown - config_.fixed_dt);
