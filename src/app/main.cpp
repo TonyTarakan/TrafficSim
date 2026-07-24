@@ -30,42 +30,141 @@
 
 namespace {
 
-// Two streams merging into one, then continuing to a shared destination:
+// Node ids for the demo network -- named so the map/junction/spawn code
+// below can't drift out of sync with itself (see the incoming={2}-instead-
+// of-{0,1} bug from earlier: hardcoded ids with no shared source of truth
+// are exactly how that happens).
+constexpr ts::NodeId kNodeW = 0;   // main road, west entry/exit
+constexpr ts::NodeId kNodeJ1 = 1;  // unregulated crossroads (right-hand rule)
+constexpr ts::NodeId kNodeJ2 = 2;  // priority-controlled crossroads (signposted main road)
+constexpr ts::NodeId kNodeJ3 = 3;  // traffic-light crossroads
+constexpr ts::NodeId kNodeE = 4;   // main road, east entry/exit
+constexpr ts::NodeId kNodeN1 = 5;
+constexpr ts::NodeId kNodeS1 = 6;
+constexpr ts::NodeId kNodeN2 = 7;
+constexpr ts::NodeId kNodeS2 = 8;
+constexpr ts::NodeId kNodeN3 = 9;
+constexpr ts::NodeId kNodeS3 = 10;
+
+// Lane ids, grouped by road segment. Every road is two one-way lanes
+// (a proper pair), not a single bidirectional one.
+constexpr ts::LaneId kLaneW_J1 = 0;
+constexpr ts::LaneId kLaneJ1_J2 = 1;
+constexpr ts::LaneId kLaneJ2_J3 = 2;
+constexpr ts::LaneId kLaneJ3_E = 3;
+constexpr ts::LaneId kLaneE_J3 = 4;
+constexpr ts::LaneId kLaneJ3_J2 = 5;
+constexpr ts::LaneId kLaneJ2_J1 = 6;
+constexpr ts::LaneId kLaneJ1_W = 7;
+constexpr ts::LaneId kLaneN1_J1 = 8;
+constexpr ts::LaneId kLaneJ1_S1 = 9;
+constexpr ts::LaneId kLaneS1_J1 = 10;
+constexpr ts::LaneId kLaneJ1_N1 = 11;
+constexpr ts::LaneId kLaneN2_J2 = 12;
+constexpr ts::LaneId kLaneJ2_S2 = 13;
+constexpr ts::LaneId kLaneS2_J2 = 14;
+constexpr ts::LaneId kLaneJ2_N2 = 15;
+constexpr ts::LaneId kLaneN3_J3 = 16;
+constexpr ts::LaneId kLaneJ3_S3 = 17;
+constexpr ts::LaneId kLaneS3_J3 = 18;
+constexpr ts::LaneId kLaneJ3_N3 = 19;
+
+//                     N1              N2              N3
+//                      |               |               |
+//   W === J1 =========== J2 =========== J3 =========== E
+//                      |               |               |
+//                     S1              S2              S3
 //
-//   node0 (stream A) --lane0--
-//                              --> node2 --lane2(shared)--> node3
-//   node1 (stream B) --lane1--
+// A main road running W -> E through three crossroads, each demonstrating
+// a different JunctionControl strategy, plus a two-way cross street at
+// every one of them so through traffic and cross traffic actually
+// collide:
 //
-// Demonstrates route-following (vehicles advance lane0/1 -> lane2 when they reach the end)
-// and forced merging
-// (if the shared lane ever has fewer sublanes than an incoming one, SimEngine::tick() clamps sublane_idx on
-// transition).
+//   J1: UnregulatedControl -- right-hand rule
+//   J2: PriorityControl    -- main road is signposted, cross street yields both ways
+//   J3: TrafficLightControl -- 8s phases, alternating main road / cross street
+//
+// Every road is a pair of one-way lanes, so this is real two-way traffic,
+// not a single lane pretending to be bidirectional.
 std::vector<ts::RoadNode> make_demo_nodes()
 {
     return {
-        {.id = 0, .pos = {.x = 0.f, .y = -30.f}},  // stream A origin
-        {.id = 1, .pos = {.x = 0.f, .y = 30.f}},   // stream B origin
-        {.id = 2, .pos = {.x = 150.f, .y = 0.f}},  // merge point
-        {.id = 3, .pos = {.x = 300.f, .y = 0.f}},  // shared destination
+        {.id = kNodeW, .pos = {.x = -150.f, .y = 300.f}},
+        {.id = kNodeJ1, .pos = {.x = 0.f, .y = 300.f}},
+        {.id = kNodeJ2, .pos = {.x = 300.f, .y = 300.f}},
+        {.id = kNodeJ3, .pos = {.x = 600.f, .y = 300.f}},
+        {.id = kNodeE, .pos = {.x = 750.f, .y = 300.f}},
+        {.id = kNodeN1, .pos = {.x = 0.f, .y = 120.f}},
+        {.id = kNodeS1, .pos = {.x = 0.f, .y = 480.f}},
+        {.id = kNodeN2, .pos = {.x = 300.f, .y = 120.f}},
+        {.id = kNodeS2, .pos = {.x = 300.f, .y = 480.f}},
+        {.id = kNodeN3, .pos = {.x = 600.f, .y = 120.f}},
+        {.id = kNodeS3, .pos = {.x = 600.f, .y = 480.f}},
     };
 }
 
 std::vector<ts::Lane> make_demo_lanes()
 {
+    constexpr float kMainSpeed = 15.f;
+    constexpr float kCrossSpeed = 12.f;
+
     return {
-        {.id = 0, .from = 0, .to = 2, .length = 153.f, .speed_limit = 15.f, .num_sublanes = 1},
-        {.id = 1, .from = 1, .to = 2, .length = 153.f, .speed_limit = 15.f, .num_sublanes = 1},
-        {.id = 2, .from = 2, .to = 3, .length = 150.f, .speed_limit = 15.f, .num_sublanes = 1},
+        // Main road, both directions, straight through J1/J2/J3.
+        {.id = kLaneW_J1, .from = kNodeW, .to = kNodeJ1, .length = 150.f, .speed_limit = kMainSpeed},
+        {.id = kLaneJ1_J2, .from = kNodeJ1, .to = kNodeJ2, .length = 300.f, .speed_limit = kMainSpeed},
+        {.id = kLaneJ2_J3, .from = kNodeJ2, .to = kNodeJ3, .length = 300.f, .speed_limit = kMainSpeed},
+        {.id = kLaneJ3_E, .from = kNodeJ3, .to = kNodeE, .length = 150.f, .speed_limit = kMainSpeed},
+        {.id = kLaneE_J3, .from = kNodeE, .to = kNodeJ3, .length = 150.f, .speed_limit = kMainSpeed},
+        {.id = kLaneJ3_J2, .from = kNodeJ3, .to = kNodeJ2, .length = 300.f, .speed_limit = kMainSpeed},
+        {.id = kLaneJ2_J1, .from = kNodeJ2, .to = kNodeJ1, .length = 300.f, .speed_limit = kMainSpeed},
+        {.id = kLaneJ1_W, .from = kNodeJ1, .to = kNodeW, .length = 150.f, .speed_limit = kMainSpeed},
+
+        // Cross street at J1 -- unregulated.
+        {.id = kLaneN1_J1, .from = kNodeN1, .to = kNodeJ1, .length = 180.f, .speed_limit = kCrossSpeed},
+        {.id = kLaneJ1_S1, .from = kNodeJ1, .to = kNodeS1, .length = 180.f, .speed_limit = kCrossSpeed},
+        {.id = kLaneS1_J1, .from = kNodeS1, .to = kNodeJ1, .length = 180.f, .speed_limit = kCrossSpeed},
+        {.id = kLaneJ1_N1, .from = kNodeJ1, .to = kNodeN1, .length = 180.f, .speed_limit = kCrossSpeed},
+
+        // Cross street at J2 -- yields to the main road.
+        {.id = kLaneN2_J2, .from = kNodeN2, .to = kNodeJ2, .length = 180.f, .speed_limit = kCrossSpeed},
+        {.id = kLaneJ2_S2, .from = kNodeJ2, .to = kNodeS2, .length = 180.f, .speed_limit = kCrossSpeed},
+        {.id = kLaneS2_J2, .from = kNodeS2, .to = kNodeJ2, .length = 180.f, .speed_limit = kCrossSpeed},
+        {.id = kLaneJ2_N2, .from = kNodeJ2, .to = kNodeN2, .length = 180.f, .speed_limit = kCrossSpeed},
+
+        // Cross street at J3 -- traffic light.
+        {.id = kLaneN3_J3, .from = kNodeN3, .to = kNodeJ3, .length = 180.f, .speed_limit = kCrossSpeed},
+        {.id = kLaneJ3_S3, .from = kNodeJ3, .to = kNodeS3, .length = 180.f, .speed_limit = kCrossSpeed},
+        {.id = kLaneS3_J3, .from = kNodeS3, .to = kNodeJ3, .length = 180.f, .speed_limit = kCrossSpeed},
+        {.id = kLaneJ3_N3, .from = kNodeJ3, .to = kNodeN3, .length = 180.f, .speed_limit = kCrossSpeed},
     };
 }
 
 std::vector<ts::Junction> make_demo_junctions()
 {
-    ts::Junction j{};
-    j.node_id = 2;
-    j.incoming = {0, 1};
-    j.control = ts::PriorityControl{.yields_to = {{1, {0}}}};
-    return {j};
+    ts::Junction j1{};
+    j1.node_id = kNodeJ1;
+    j1.incoming = {kLaneW_J1, kLaneJ2_J1, kLaneN1_J1, kLaneS1_J1};
+    j1.control = ts::UnregulatedControl{};
+
+    ts::Junction j2{};
+    j2.node_id = kNodeJ2;
+    j2.incoming = {kLaneJ1_J2, kLaneJ3_J2, kLaneN2_J2, kLaneS2_J2};
+    // Main-road through traffic (from J1 or from J3) has priority; the
+    // cross street yields to both directions of it.
+    j2.control = ts::PriorityControl{.yields_to = {
+                                         {kLaneN2_J2, {kLaneJ1_J2, kLaneJ3_J2}},
+                                         {kLaneS2_J2, {kLaneJ1_J2, kLaneJ3_J2}},
+                                     }};
+
+    ts::Junction j3{};
+    j3.node_id = kNodeJ3;
+    j3.incoming = {kLaneJ2_J3, kLaneE_J3, kLaneN3_J3, kLaneS3_J3};
+    j3.control = ts::TrafficLightControl{.phases = {
+                                             {.green_lanes = {kLaneJ2_J3, kLaneE_J3}, .duration = 8.f},
+                                             {.green_lanes = {kLaneN3_J3, kLaneS3_J3}, .duration = 8.f},
+                                         }};
+
+    return {j1, j2, j3};
 }
 
 float generate_rand(float from, float to)
@@ -77,14 +176,18 @@ float generate_rand(float from, float to)
     return dist(rng);
 }
 
-void spawn_stream(ts::SimEngine& engine, ts::LaneId origin_lane, ts::NodeId origin_node, ts::VehicleId id_start)
+// Spawns 'count' vehicles at the start of the route from 'origin_node' to
+// 'dest_node', spread out nose-to-tail so they don't start overlapping.
+void spawn_stream(ts::SimEngine& engine, ts::NodeId origin_node, ts::NodeId dest_node, ts::VehicleId id_start,
+                  int count)
 {
-    auto route = engine.compute_route(origin_node, 3);
-    if (!route) {
-        return;  // shouldn't happen with this demo network, but don't crash if it does
+    auto route = engine.compute_route(origin_node, dest_node);
+    if (!route || route->empty()) {
+        LOG_WARNING(ts::log::get(), "no route from node {} to node {}, skipping stream", origin_node, dest_node);
+        return;
     }
 
-    for (int i = 0; i < 6; ++i) {
+    for (int i = 0; i < count; ++i) {
         float random_speed = generate_rand(5.0f, 10.0f);
 
         ts::Vehicle v{
@@ -92,9 +195,8 @@ void spawn_stream(ts::SimEngine& engine, ts::LaneId origin_lane, ts::NodeId orig
             .type = ts::VehicleType::Car,
             .idm_params = ts::default_params(ts::VehicleType::Car),
             .speed = random_speed,
-            .lane_id = origin_lane,
-            .offset = static_cast<float>(i) * 10.f,  // spread along the lane
-            .sublane_idx = 0,                        // i % 2,
+            .lane_id = route->front(),
+            .offset = static_cast<float>(i) * 12.f,  // spread along the lane
             .route = *route,
         };
         v.idm_params.desired_speed = random_speed;
@@ -105,8 +207,21 @@ void spawn_stream(ts::SimEngine& engine, ts::LaneId origin_lane, ts::NodeId orig
 
 void spawn_demo_vehicles(ts::SimEngine& engine)
 {
-    spawn_stream(engine, /*origin_lane=*/0, /*origin_node=*/0, /*id_start=*/0);
-    spawn_stream(engine, /*origin_lane=*/1, /*origin_node=*/1, /*id_start=*/100);
+    // Main road through traffic, both directions -- crosses all three junctions.
+    spawn_stream(engine, kNodeW, kNodeE, /*id_start=*/0, /*count=*/5);
+    spawn_stream(engine, kNodeE, kNodeW, /*id_start=*/1000, /*count=*/5);
+
+    // Cross traffic at J1 (unregulated).
+    spawn_stream(engine, kNodeN1, kNodeS1, /*id_start=*/2000, /*count=*/3);
+    spawn_stream(engine, kNodeS1, kNodeN1, /*id_start=*/3000, /*count=*/3);
+
+    // Cross traffic at J2 (priority signs -- yields to the main road).
+    spawn_stream(engine, kNodeN2, kNodeS2, /*id_start=*/4000, /*count=*/3);
+    spawn_stream(engine, kNodeS2, kNodeN2, /*id_start=*/5000, /*count=*/3);
+
+    // Cross traffic at J3 (traffic light).
+    spawn_stream(engine, kNodeN3, kNodeS3, /*id_start=*/6000, /*count=*/3);
+    spawn_stream(engine, kNodeS3, kNodeN3, /*id_start=*/7000, /*count=*/3);
 }
 
 }  // namespace
@@ -136,6 +251,7 @@ int main(int /*argc*/, char** /*argv*/)
     std::vector<ts::RoadNode> nodes = make_demo_nodes();
     std::vector<ts::Lane> lanes = make_demo_lanes();
     std::vector<ts::Junction> junctions = make_demo_junctions();
+    const std::size_t junction_count = junctions.size();
 
     ts::SimEngine engine;
     engine.set_map(nodes, lanes);
@@ -144,8 +260,8 @@ int main(int /*argc*/, char** /*argv*/)
 
     ts::Renderer renderer{sdl_renderer};
     ts::Camera camera;
-    camera.offset = {.x = -50.f, .y = -50.f};  // leave a little margin around the lane
-    camera.zoom = 5.f;
+    camera.offset = {.x = -200.f, .y = -80.f};  // fit the W..E / N..S extent with some margin
+    camera.zoom = 1.2f;
 
     std::atomic<bool> running = true;
 
@@ -180,6 +296,7 @@ int main(int /*argc*/, char** /*argv*/)
         ImGui::Begin("TrafficSim");
         ImGui::Text("sim time: %.1f s", snapshot.sim_time);
         ImGui::Text("vehicles: %zu", snapshot.vehicles.size());
+        ImGui::Text("junctions: %zu (unregulated / priority / traffic light)", junction_count);
         ImGui::End();
 
         SDL_SetRenderDrawColor(sdl_renderer, 30, 30, 30, 255);
