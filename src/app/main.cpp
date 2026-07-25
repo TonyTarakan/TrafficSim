@@ -183,11 +183,12 @@ std::vector<ts::Junction> make_demo_junctions()
     return {j1, j2, j3};
 }
 
+// TODO: remove code duplication
 float generate_rand(float from, float to)
 {
     static std::random_device rd;
     static std::mt19937 rng{rd()};  // генератор
-    static std::uniform_real_distribution<float> dist{from, to};
+    std::uniform_real_distribution<float> dist{from, to};
 
     return dist(rng);
 }
@@ -310,7 +311,7 @@ int main(int /*argc*/, char** /*argv*/)
         ImGui::NewFrame();
 
         ImGui::Begin("TrafficSim");
-        ImGui::Text("sim time: %.1f s", snapshot.sim_time);
+        ImGui::Text("sim time: %.1lf s", snapshot.sim_time);
         ImGui::Text("vehicles: %zu", snapshot.vehicles.size());
         ImGui::Text("junctions: %zu (unregulated / priority / traffic light)", junction_count);
         ImGui::End();

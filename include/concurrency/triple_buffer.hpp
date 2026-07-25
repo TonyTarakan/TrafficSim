@@ -22,7 +22,7 @@ public:
     // Writer thread only.
     void publish() noexcept
     {
-        std::uint32_t published_code = write_idx_ | kDirtyBit;  // mark as filled
+        std::uint32_t published_code = write_idx_ | kDirtyMask;  // mark as filled
         std::uint32_t prev_wr_code = spare_idx_.exchange(published_code, std::memory_order_acq_rel);
         write_idx_ = prev_wr_code & kIndexMask;  // new place to write
     }
@@ -34,7 +34,7 @@ public:
     bool consume() noexcept
     {
         std::uint32_t curr_rd_code = spare_idx_.load(std::memory_order_acquire);
-        if ((curr_rd_code & kDirtyBit) == 0) {
+        if ((curr_rd_code & kDirtyMask) == 0) {
             return false;  // nothing new since last consume()
         }
 
@@ -53,14 +53,15 @@ public:
     }
 
 private:
-    static constexpr std::uint32_t kDirtyBit = 0x8000'0000u;   // Senior bit as flag/switch
-    static constexpr std::uint32_t kIndexMask = 0x0000'0003u;  // Two bits mask
+    static constexpr std::uint32_t kDirtyMask = (1u << 31);   // Senior bit as flag/switch
+    static constexpr std::uint32_t kIndexMask = ~kDirtyMask;  // Payload mask
+
     // static constexpr auto kCacheAlign = std::hardware_destructive_interference_size;
-    static constexpr auto kCacheAlign = 64;  // to avoid [-Winterference-size] warning
+    static constexpr std::size_t kCacheAlign = 64;  // to avoid [-Winterference-size] warning
 
     alignas(kCacheAlign) std::array<T, 3> bufs_{};
 
-    alignas(kCacheAlign) std::uint32_t write_idx_ = 0;              // writer-private(back), never touched by reader
+    alignas(kCacheAlign) std::uint32_t write_idx_{0};               // writer-private(back), never touched by reader
     alignas(kCacheAlign) std::uint32_t read_idx_{1};                // reader-private(front), never touched by writer
     alignas(kCacheAlign) std::atomic<std::uint32_t> spare_idx_{2};  // the shared spare slot (clean, no dirty bit)
 };

@@ -68,14 +68,17 @@ const Lane* SimEngine::find_lane(LaneId id) const
 }
 
 namespace {
+
+// TODO: remove code duplication
 float generate_rand(float from, float to)
 {
     static std::random_device rd;
     static std::mt19937 rng{rd()};  // генератор
-    static std::uniform_real_distribution<float> dist{from, to};
+    std::uniform_real_distribution<float> dist{from, to};
 
     return dist(rng);
 }
+
 }  // namespace
 
 void SimEngine::tick()

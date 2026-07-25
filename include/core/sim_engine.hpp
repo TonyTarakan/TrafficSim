@@ -14,7 +14,7 @@ namespace ts {
 
 struct WorldSnapshot {
     std::vector<Vehicle> vehicles{};
-    float sim_time{};
+    double sim_time{};
 };
 
 struct SimConfig {
