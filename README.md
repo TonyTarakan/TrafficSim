@@ -1,6 +1,10 @@
 # TrafficSim
 
-C++23 traffic simulation. Work in progress.
+C++23 traffic simulation. Work in progress...
+
+## Screenshot
+
+![TrafficSim](docs/images/demo.gif)
 
 ## Quick start (devcontainer)
 

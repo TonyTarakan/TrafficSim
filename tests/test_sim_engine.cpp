@@ -138,8 +138,9 @@ TEST(SimEngine, VehicleStopsAtRedLightJunction)
     }
 
     EXPECT_NEAR(engine.vehicles()[0].speed, 0.f, 0.5f);
-    EXPECT_GT(engine.vehicles()[0].offset, 90.f);   // got close to the stop line...
-    EXPECT_LE(engine.vehicles()[0].offset, 100.f);  // ...but didn't cross it
+    const float expected_gap = default_params(VehicleType::Car).min_gap;
+    float actual_gap = lanes[0].length - engine.vehicles()[0].offset;
+    EXPECT_NEAR(actual_gap, expected_gap, 3.f);
 }
 
 TEST(SimEngine, VehicleYieldsToPriorityCrossTraffic)
