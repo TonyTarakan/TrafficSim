@@ -8,7 +8,8 @@
 
 // Fixed-size thread pool backed by a single mutex-protected task queue.
 //
-//   run_and_wait(tasks) - run an arbitrary batch of closures, block until all of them finish.
+//   run_and_wait(tasks)     - run an arbitrary batch of closures/funcs,
+//                             blocks until all of them finish.
 //   parallel_for(count, fn) - splits [0, count) into up to num_threads()
 //                             chunks and runs fn(begin, end) for each chunk.
 

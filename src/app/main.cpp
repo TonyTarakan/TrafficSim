@@ -27,6 +27,25 @@
 // - Optimize IDM and MOBIL algos
 // - This is a project for fun and study,
 //   but check https://eclipse.dev/sumo/ for ideas
+// - Spawn points + despawn (OD matrix by nodes)
+// - Junction stop lane fix
+// - Multi-level junctions
+//   (RoadNode::z — make it not just a field, but a working feature in the A* heuristics and rendering)
+// - Circles, curves - ??
+// - Map editor (maybe there's a separate one for OSM or something like that) (editor_ui.cpp)
+//   Saving/loading maps + OSM (map_serializer.cpp)
+// - Proactive merge via MOBIL and smooth lane changes
+// - Live traffic lights?
+// - REPEAT/CHECK latch, barrier, lock-free, cv, queues, sanitizers, ...
+// - Benchmarks (bench/, perf/eBPF, lock-free, AoS→SoA comparison, DOD)
+// - Improved rendering, UI and refactoring, strong types, UDL units
+// - transition to oneTBB and SIMD
+//
+// - Immutable Map as a single object.
+// - SpawnSystem / DespawnSystem / VehicleSystem.
+// - Job System (parallel_for) instead of the universal ThreadPool.
+// - Indexes (LaneId → Lane*, NodeId → Node*) instead of linear searches.
+// - Lane occupancy cache (search for the leader not across all cars, but only across cars in the desired lane).
 //
 
 namespace {
