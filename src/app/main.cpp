@@ -269,6 +269,7 @@ int main(int /*argc*/, char** /*argv*/)
     std::vector<ts::Lane> lanes = make_demo_lanes();
     std::vector<ts::Junction> junctions = make_demo_junctions();
     const std::size_t junction_count = junctions.size();
+    const std::vector<ts::Junction> junctions_for_render = junctions;
 
     ts::SimEngine engine;
     engine.set_map(nodes, lanes);
@@ -320,6 +321,7 @@ int main(int /*argc*/, char** /*argv*/)
         SDL_RenderClear(sdl_renderer);
 
         renderer.draw_lanes(nodes, lanes, camera);
+        renderer.draw_junctions(nodes, lanes, junctions_for_render, camera);
         renderer.draw_vehicles(snapshot.vehicles, nodes, lanes, camera);
 
         ImGui::Render();

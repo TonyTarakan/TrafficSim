@@ -4,6 +4,7 @@
 
 #include <span>
 
+#include "core/junction.hpp"
 #include "core/road_graph.hpp"
 #include "core/vehicle.hpp"
 #include "render/camera.hpp"
@@ -20,6 +21,9 @@ public:
 
     void draw_vehicles(std::span<const Vehicle> vehicles, std::span<const RoadNode> nodes, std::span<const Lane> lanes,
                        const Camera& camera);
+
+    void draw_junctions(std::span<const RoadNode> nodes, std::span<const Lane> lanes,
+                        std::span<const Junction> junctions, const Camera& camera);
 
 private:
     SDL_Renderer* sdl_renderer_;
