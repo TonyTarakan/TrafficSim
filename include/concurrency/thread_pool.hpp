@@ -24,7 +24,9 @@ public:
     ThreadPool(ThreadPool&&) = delete;
     ThreadPool& operator=(ThreadPool&&) = delete;
 
-    void parallel_for(const std::function<void(std::size_t, std::size_t)>& fn, std::size_t count = 1);
+    template <typename F>
+        requires std::invocable<F&, std::size_t, std::size_t>
+    void parallel_for(F&& fn, std::size_t count = 1);
 
     [[nodiscard]] std::size_t thread_count() const noexcept { return workers_.size(); }
 
@@ -40,5 +42,30 @@ private:
 
     bool stop_{false};
 };
+
+template <typename F>
+    requires std::invocable<F&, std::size_t, std::size_t>
+void ThreadPool::parallel_for(F&& fn, std::size_t count)
+{
+    if (count == 0) return;
+
+    std::size_t chunks_count = std::min(count, thread_count());
+    std::size_t chunk_size = (count + chunks_count - 1) / chunks_count;
+
+    std::vector<std::move_only_function<void()>> tasks;
+    tasks.reserve(chunks_count);
+    for (std::size_t i = 0; i < chunks_count; ++i) {
+        std::size_t begin = i * chunk_size;
+        std::size_t end = std::min(begin + chunk_size, count);
+        if (begin >= end) {
+            break;
+        }
+        // Intentionally keep fn as an lvalue:
+        // it is invoked by multiple tasks, so forwarding/moving it would be incorrect.
+        tasks.emplace_back([&fn, begin, end] { fn(begin, end); });
+    }
+
+    run_and_wait(std::move(tasks));
+}
 
 }  // namespace ts

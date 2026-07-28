@@ -46,27 +46,6 @@ void ThreadPool::run_and_wait(std::vector<std::move_only_function<void()>> tasks
     latch->wait();
 }
 
-void ThreadPool::parallel_for(const std::function<void(std::size_t, std::size_t)>& fn, std::size_t count)
-{
-    if (count == 0) return;
-
-    std::size_t chunks_count = std::min(count, thread_count());
-    std::size_t chunk_size = (count + chunks_count - 1) / chunks_count;
-
-    std::vector<std::move_only_function<void()>> tasks;
-    tasks.reserve(chunks_count);
-    for (std::size_t i = 0; i < chunks_count; ++i) {
-        std::size_t begin = i * chunk_size;
-        std::size_t end = std::min(begin + chunk_size, count);
-        if (begin >= end) {
-            break;
-        }
-        tasks.emplace_back([&fn, begin, end] { fn(begin, end); });
-    }
-
-    run_and_wait(std::move(tasks));
-}
-
 void ThreadPool::worker_loop()
 {
     while (true) {
