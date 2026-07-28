@@ -40,7 +40,7 @@ std::optional<idm::LeaderInfo> find_leader(const Vehicle& ego, std::span<const V
 
 }  // namespace
 
-SimEngine::SimEngine(SimConfig config) : config_(config) {}
+SimEngine::SimEngine(SimConfig config) : config_(config), pool_(config.num_threads) {}
 
 void SimEngine::set_map(std::vector<RoadNode> nodes, std::vector<Lane> lanes)
 {
@@ -72,8 +72,7 @@ namespace {
 // TODO: remove code duplication
 float generate_rand(float from, float to)
 {
-    static std::random_device rd;
-    static std::mt19937 rng{rd()};  // генератор
+    thread_local std::mt19937 rng{std::random_device{}()};
     std::uniform_real_distribution<float> dist{from, to};
 
     return dist(rng);
@@ -95,100 +94,120 @@ void SimEngine::tick()
     using namespace lane_change;
 
     std::vector<Turn> sublane_deltas(vehicles_.size(), Turn::NONE);
-    for (std::size_t i = 0; i < vehicles_.size(); ++i) {
-        if (vehicles_[i].lane_change_cooldown > 0.f) {
-            continue;  // still cooling down from a recent switch — skip decide()
-        }
-        const Lane* lane = find_lane(vehicles_[i].lane_id);
-        std::uint8_t num_sublanes = lane ? lane->num_sublanes : 1;
-        sublane_deltas[i] = decide(vehicles_[i], vehicles_, num_sublanes);
-    }
-    for (std::size_t i = 0; i < vehicles_.size(); ++i) {
-        Vehicle& v = vehicles_[i];
-        if (sublane_deltas[i] != Turn::NONE) {
-            int new_sublane = static_cast<int>(v.sublane_idx) + static_cast<int>(sublane_deltas[i]);
-            v.sublane_idx = static_cast<std::uint8_t>(new_sublane);
-            v.lane_change_cooldown = generate_rand(3.0f, 4.0f);
-        }
-        else {
-            v.lane_change_cooldown = std::max(0.f, v.lane_change_cooldown - config_.fixed_dt);
-        }
-    }
+    pool_.parallel_for(
+        [&](std::size_t begin, std::size_t end) {
+            for (std::size_t i = begin; i < end; ++i) {
+                if (vehicles_[i].lane_change_cooldown > 0.f) {
+                    continue;  // still cooling down from a recent switch — skip decide()
+                }
+                const Lane* lane = find_lane(vehicles_[i].lane_id);
+                std::uint8_t num_sublanes = lane ? lane->num_sublanes : 1;
+                sublane_deltas[i] = decide(vehicles_[i], vehicles_, num_sublanes);
+            }
+        },
+        vehicles_.size());
+
+    pool_.parallel_for(
+        [&](std::size_t begin, std::size_t end) {
+            for (std::size_t i = begin; i < end; ++i) {
+                Vehicle& v = vehicles_[i];
+                if (sublane_deltas[i] != Turn::NONE) {
+                    int new_sublane = static_cast<int>(v.sublane_idx) + static_cast<int>(sublane_deltas[i]);
+                    v.sublane_idx = static_cast<std::uint8_t>(new_sublane);
+                    v.lane_change_cooldown = generate_rand(3.0f, 4.0f);
+                }
+                else {
+                    v.lane_change_cooldown = std::max(0.f, v.lane_change_cooldown - config_.fixed_dt);
+                }
+            }
+        },
+        vehicles_.size());
 
     // --- car-following (IDM), on the (now lane-change-applied) snapshot ---
     // Snapshot leaders before mutating anything
     // TODO: this is O(N*N). Optimize!
     std::vector<std::optional<idm::LeaderInfo>> leaders(vehicles_.size());
-    for (std::size_t i = 0; i < vehicles_.size(); ++i) {
-        leaders[i] = find_leader(vehicles_[i], vehicles_);
-    }
+    pool_.parallel_for(
+        [&](std::size_t begin, std::size_t end) {
+            for (std::size_t i = begin; i < end; ++i) {
+                leaders[i] = find_leader(vehicles_[i], vehicles_);
+            }
+        },
+        vehicles_.size());
 
-    for (std::size_t i = 0; i < vehicles_.size(); ++i) {
-        Vehicle& v = vehicles_[i];
+    pool_.parallel_for(
+        [&](std::size_t begin, std::size_t end) {
+            for (std::size_t i = begin; i < end; ++i) {
+                Vehicle& v = vehicles_[i];
 
-        // check real leaders
-        float accel = idm::accelerate(v.idm_params, v.speed, leaders[i]);
+                // check real leaders
+                float accel = idm::accelerate(v.idm_params, v.speed, leaders[i]);
 
-        // A junction the current lane feeds into
-        // acts as a second, independent obstacle (virtual leader).
-        const Lane* cur_lane = find_lane(v.lane_id);
-        if (cur_lane) {  // TODO: is it OK when the vehicle is out of lane?
+                // A junction the current lane feeds into
+                // acts as a second, independent obstacle (virtual leader).
+                const Lane* cur_lane = find_lane(v.lane_id);
+                if (cur_lane) {  // TODO: is it OK when the vehicle is out of lane?
 
-            auto virt_leader = leader_to_yield(v, *cur_lane, junctions_, vehicles_, lanes_);
-            if (virt_leader) {
-                float junction_accel = idm::accelerate(v.idm_params, v.speed, virt_leader);
-                if (junction_accel < accel) {
-                    LOG_TRACE_L1(log::get(), "vehicle {} yields at junction, {:.1f}m to the line", v.id,
-                                 virt_leader->gap);
+                    auto virt_leader = leader_to_yield(v, *cur_lane, junctions_, vehicles_, lanes_);
+                    if (virt_leader) {
+                        float junction_accel = idm::accelerate(v.idm_params, v.speed, virt_leader);
+                        if (junction_accel < accel) {
+                            LOG_TRACE_L1(log::get(), "vehicle {} yields at junction, {:.1f}m to the line", v.id,
+                                         virt_leader->gap);
+                        }
+
+                        accel = std::min(accel, junction_accel);  // if we had a real leader, more restrictive wins
+                    }
                 }
 
-                accel = std::min(accel, junction_accel);  // if we had a real leader, more restrictive obstacle wins
+                float new_speed = std::max(0.f, v.speed + accel * config_.fixed_dt);  // speed >= 0
+
+                v.offset += 0.5f * (v.speed + new_speed) * config_.fixed_dt;  // linear accel distance
+                v.speed = new_speed;
             }
-        }
-
-        float new_speed = std::max(0.f, v.speed + accel * config_.fixed_dt);  // speed >= 0
-
-        v.offset += 0.5f * (v.speed + new_speed) * config_.fixed_dt;  // linear accel distance
-        v.speed = new_speed;
-    }
+        },
+        vehicles_.size());
 
     // --- lane transitions: advance along the route when a lane ends ---
     // Runs after IDM integration (needs this tick's updated offset to know
     // whether we've actually run off the end of the current lane).
-    for (auto& v : vehicles_) {
-        const Lane* cur_lane = find_lane(v.lane_id);
-        if (!cur_lane || v.offset <= cur_lane->length) {
-            continue;  // still within the current lane, nothing to do
-        }
+    pool_.parallel_for(
+        [&](std::size_t begin, std::size_t end) {
+            for (std::size_t i = begin; i < end; ++i) {
+                Vehicle& v = vehicles_[i];
+                const Lane* cur_lane = find_lane(v.lane_id);
+                if (!cur_lane || v.offset <= cur_lane->length) {
+                    continue;  // still within the current lane, nothing to do
+                }
 
-        float overflow = v.offset - cur_lane->length;
+                float overflow = v.offset - cur_lane->length;
 
-        if (v.route_idx + 1 >= v.route.size()) {
-            // Workaround. No despawn logic yet, loop back to the start
-            v.route_idx = 0;
-        }
-        else {
-            ++v.route_idx;
-        }
+                if (v.route_idx + 1 >= v.route.size()) {
+                    // Workaround. No despawn logic yet, loop back to the start
+                    v.route_idx = 0;
+                }
+                else {
+                    ++v.route_idx;
+                }
 
-        if (v.route.empty()) {
-            continue;  // no route at all -- stay put at the lane's end
-        }
+                if (v.route.empty()) continue;  // stay put at the lane's end
 
-        v.lane_id = v.route[v.route_idx];
-        v.offset = overflow;
+                v.lane_id = v.route[v.route_idx];
+                v.offset = overflow;
 
-        // Forced merge: if the new lane has fewer sublanes than our
-        // current index allows, clamp into range. This is a hard merge,
-        // not a negotiated one -- MOBIL doesn't yet look ahead to an
-        // upcoming lane-count reduction, so vehicles don't proactively
-        // merge early. That's a natural follow-up, not this step.
-        const Lane* new_lane = find_lane(v.lane_id);
-        int max_sublane = new_lane ? static_cast<int>(new_lane->num_sublanes) - 1 : 0;
-        if (v.sublane_idx > max_sublane) {
-            v.sublane_idx = max_sublane;
-        }
-    }
+                // Forced merge: if the new lane has fewer sublanes than our
+                // current index allows, clamp into range. This is a hard merge,
+                // not a negotiated one -- MOBIL doesn't yet look ahead to an
+                // upcoming lane-count reduction, so vehicles don't proactively
+                // merge early. That's a natural follow-up, not this step.
+                const Lane* new_lane = find_lane(v.lane_id);
+                int max_sublane = new_lane ? static_cast<int>(new_lane->num_sublanes) - 1 : 0;
+                if (v.sublane_idx > max_sublane) {
+                    v.sublane_idx = max_sublane;
+                }
+            }
+        },
+        vehicles_.size());
 
     sim_time_ += config_.fixed_dt;
 

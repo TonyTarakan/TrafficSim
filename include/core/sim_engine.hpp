@@ -3,6 +3,7 @@
 #include <optional>
 #include <vector>
 
+#include "concurrency/thread_pool.hpp"
 #include "concurrency/triple_buffer.hpp"
 #include "core/junction.hpp"
 #include "core/road_graph.hpp"
@@ -19,6 +20,7 @@ struct WorldSnapshot {
 
 struct SimConfig {
     float fixed_dt{1.f / 50.f};  // seconds per tick (default 50 Hz)
+    std::size_t num_threads{0};  // 0 = auto-detect (hardware_concurrency)
 };
 
 // TODO: proactive lane-changing ahead of merges/exits (look-ahead MOBIL bias)
@@ -42,6 +44,7 @@ public:
     [[nodiscard]] std::vector<Vehicle>& vehicles() & noexcept { return vehicles_; }
     [[nodiscard]] const std::vector<Vehicle>& vehicles() const& noexcept { return vehicles_; }
     [[nodiscard]] double sim_time() const noexcept { return sim_time_; }
+    [[nodiscard]] std::size_t worker_count() const noexcept { return pool_.thread_count(); }
     TripleBuffer<WorldSnapshot>& world_buffer() & noexcept { return world_buffer_; }
 
 private:
@@ -58,6 +61,7 @@ private:
 
     double sim_time_{0.0};
 
+    ThreadPool pool_;
     TripleBuffer<WorldSnapshot> world_buffer_;
 };
 
