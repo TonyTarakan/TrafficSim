@@ -4,6 +4,8 @@
 #include <cmath>
 #include <queue>
 
+#include "core/types.hpp"
+
 namespace ts {
 
 void RoadGraph::rebuild(std::span<const RoadNode> nodes, std::span<const Lane> lanes)

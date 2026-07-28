@@ -16,6 +16,7 @@
 #include "core/log.hpp"
 #include "core/road_graph.hpp"
 #include "core/sim_engine.hpp"
+#include "core/types.hpp"
 #include "core/vehicle_params.hpp"
 #include "render/camera.hpp"
 #include "render/renderer.hpp"
@@ -54,48 +55,48 @@ namespace {
 // below can't drift out of sync with itself (see the incoming={2}-instead-
 // of-{0,1} bug from earlier: hardcoded ids with no shared source of truth
 // are exactly how that happens).
-constexpr ts::NodeId kNodeW = 0;   // main road, west entry/exit
-constexpr ts::NodeId kNodeJ1 = 1;  // unregulated crossroads (right-hand rule)
-constexpr ts::NodeId kNodeJ2 = 2;  // priority-controlled crossroads (signposted main road)
-constexpr ts::NodeId kNodeJ3 = 3;  // traffic-light crossroads
-constexpr ts::NodeId kNodeE = 4;   // main road, east entry/exit
-constexpr ts::NodeId kNodeN1 = 5;
-constexpr ts::NodeId kNodeS1 = 6;
-constexpr ts::NodeId kNodeN2 = 7;
-constexpr ts::NodeId kNodeS2 = 8;
-constexpr ts::NodeId kNodeN3 = 9;
-constexpr ts::NodeId kNodeS3 = 10;
+constexpr ts::NodeId kNodeW0{0};  // main road, west entry/exit
+constexpr ts::NodeId kNodeJ1{1};  // unregulated crossroads (right-hand rule)
+constexpr ts::NodeId kNodeJ2{2};  // priority-controlled crossroads (signposted main road)
+constexpr ts::NodeId kNodeJ3{3};  // traffic-light crossroads
+constexpr ts::NodeId kNodeE0{4};  // main road, east entry/exit
+constexpr ts::NodeId kNodeN1{5};
+constexpr ts::NodeId kNodeS1{6};
+constexpr ts::NodeId kNodeN2{7};
+constexpr ts::NodeId kNodeS2{8};
+constexpr ts::NodeId kNodeN3{9};
+constexpr ts::NodeId kNodeS3{10};
 
 // Lane ids, grouped by road segment. Every road is two one-way lanes
 // (a proper pair), not a single bidirectional one.
-constexpr ts::LaneId kLaneW_J1 = 0;
-constexpr ts::LaneId kLaneJ1_J2 = 1;
-constexpr ts::LaneId kLaneJ2_J3 = 2;
-constexpr ts::LaneId kLaneJ3_E = 3;
-constexpr ts::LaneId kLaneE_J3 = 4;
-constexpr ts::LaneId kLaneJ3_J2 = 5;
-constexpr ts::LaneId kLaneJ2_J1 = 6;
-constexpr ts::LaneId kLaneJ1_W = 7;
-constexpr ts::LaneId kLaneN1_J1 = 8;
-constexpr ts::LaneId kLaneJ1_S1 = 9;
-constexpr ts::LaneId kLaneS1_J1 = 10;
-constexpr ts::LaneId kLaneJ1_N1 = 11;
-constexpr ts::LaneId kLaneN2_J2 = 12;
-constexpr ts::LaneId kLaneJ2_S2 = 13;
-constexpr ts::LaneId kLaneS2_J2 = 14;
-constexpr ts::LaneId kLaneJ2_N2 = 15;
-constexpr ts::LaneId kLaneN3_J3 = 16;
-constexpr ts::LaneId kLaneJ3_S3 = 17;
-constexpr ts::LaneId kLaneS3_J3 = 18;
-constexpr ts::LaneId kLaneJ3_N3 = 19;
+constexpr ts::LaneId kLaneW0_J1{0};
+constexpr ts::LaneId kLaneJ1_J2{1};
+constexpr ts::LaneId kLaneJ2_J3{2};
+constexpr ts::LaneId kLaneJ3_E0{3};
+constexpr ts::LaneId kLaneE0_J3{4};
+constexpr ts::LaneId kLaneJ3_J2{5};
+constexpr ts::LaneId kLaneJ2_J1{6};
+constexpr ts::LaneId kLaneJ1_W0{7};
+constexpr ts::LaneId kLaneN1_J1{8};
+constexpr ts::LaneId kLaneJ1_S1{9};
+constexpr ts::LaneId kLaneS1_J1{10};
+constexpr ts::LaneId kLaneJ1_N1{11};
+constexpr ts::LaneId kLaneN2_J2{12};
+constexpr ts::LaneId kLaneJ2_S2{13};
+constexpr ts::LaneId kLaneS2_J2{14};
+constexpr ts::LaneId kLaneJ2_N2{15};
+constexpr ts::LaneId kLaneN3_J3{16};
+constexpr ts::LaneId kLaneJ3_S3{17};
+constexpr ts::LaneId kLaneS3_J3{18};
+constexpr ts::LaneId kLaneJ3_N3{19};
 
-//                     N1              N2              N3
-//                      |               |               |
-//   W === J1 =========== J2 =========== J3 =========== E
-//                      |               |               |
-//                     S1              S2              S3
+//                         N1              N2              N3
+//                         |               |               |
+//   W0 === J1 =========== J2 ============ J3 ============ E0
+//                         |               |               |
+//                         S1              S2              S3
 //
-// A main road running W -> E through three crossroads, each demonstrating
+// A main road running W0 -> E0 through three crossroads, each demonstrating
 // a different JunctionControl strategy, plus a two-way cross street at
 // every one of them so through traffic and cross traffic actually
 // collide:
@@ -109,11 +110,11 @@ constexpr ts::LaneId kLaneJ3_N3 = 19;
 std::vector<ts::RoadNode> make_demo_nodes()
 {
     return {
-        {.id = kNodeW, .pos = {.x = -150.f, .y = 300.f}}, {.id = kNodeJ1, .pos = {.x = 0.f, .y = 300.f}},
-        {.id = kNodeJ2, .pos = {.x = 300.f, .y = 300.f}}, {.id = kNodeJ3, .pos = {.x = 600.f, .y = 300.f}},
-        {.id = kNodeE, .pos = {.x = 750.f, .y = 300.f}},  {.id = kNodeN1, .pos = {.x = 0.f, .y = 120.f}},
-        {.id = kNodeS1, .pos = {.x = 0.f, .y = 480.f}},   {.id = kNodeN2, .pos = {.x = 300.f, .y = 120.f}},
-        {.id = kNodeS2, .pos = {.x = 300.f, .y = 480.f}}, {.id = kNodeN3, .pos = {.x = 600.f, .y = 120.f}},
+        {.id = kNodeW0, .pos = {.x = -150.f, .y = 300.f}}, {.id = kNodeJ1, .pos = {.x = 0.f, .y = 300.f}},
+        {.id = kNodeJ2, .pos = {.x = 300.f, .y = 300.f}},  {.id = kNodeJ3, .pos = {.x = 600.f, .y = 300.f}},
+        {.id = kNodeE0, .pos = {.x = 750.f, .y = 300.f}},  {.id = kNodeN1, .pos = {.x = 0.f, .y = 120.f}},
+        {.id = kNodeS1, .pos = {.x = 0.f, .y = 480.f}},    {.id = kNodeN2, .pos = {.x = 300.f, .y = 120.f}},
+        {.id = kNodeS2, .pos = {.x = 300.f, .y = 480.f}},  {.id = kNodeN3, .pos = {.x = 600.f, .y = 120.f}},
         {.id = kNodeS3, .pos = {.x = 600.f, .y = 480.f}},
     };
 }
@@ -125,7 +126,12 @@ std::vector<ts::Lane> make_demo_lanes()
 
     return {
         // Main road, both directions, straight through J1/J2/J3.
-        {.id = kLaneW_J1, .from = kNodeW, .to = kNodeJ1, .length = 150.f, .speed_limit = kMainSpeed, .num_sublanes = 2},
+        {.id = kLaneW0_J1,
+         .from = kNodeW0,
+         .to = kNodeJ1,
+         .length = 150.f,
+         .speed_limit = kMainSpeed,
+         .num_sublanes = 2},
         {.id = kLaneJ1_J2,
          .from = kNodeJ1,
          .to = kNodeJ2,
@@ -138,8 +144,18 @@ std::vector<ts::Lane> make_demo_lanes()
          .length = 300.f,
          .speed_limit = kMainSpeed,
          .num_sublanes = 2},
-        {.id = kLaneJ3_E, .from = kNodeJ3, .to = kNodeE, .length = 150.f, .speed_limit = kMainSpeed, .num_sublanes = 2},
-        {.id = kLaneE_J3, .from = kNodeE, .to = kNodeJ3, .length = 150.f, .speed_limit = kMainSpeed, .num_sublanes = 2},
+        {.id = kLaneJ3_E0,
+         .from = kNodeJ3,
+         .to = kNodeE0,
+         .length = 150.f,
+         .speed_limit = kMainSpeed,
+         .num_sublanes = 2},
+        {.id = kLaneE0_J3,
+         .from = kNodeE0,
+         .to = kNodeJ3,
+         .length = 150.f,
+         .speed_limit = kMainSpeed,
+         .num_sublanes = 2},
         {.id = kLaneJ3_J2,
          .from = kNodeJ3,
          .to = kNodeJ2,
@@ -152,7 +168,12 @@ std::vector<ts::Lane> make_demo_lanes()
          .length = 300.f,
          .speed_limit = kMainSpeed,
          .num_sublanes = 2},
-        {.id = kLaneJ1_W, .from = kNodeJ1, .to = kNodeW, .length = 150.f, .speed_limit = kMainSpeed, .num_sublanes = 2},
+        {.id = kLaneJ1_W0,
+         .from = kNodeJ1,
+         .to = kNodeW0,
+         .length = 150.f,
+         .speed_limit = kMainSpeed,
+         .num_sublanes = 2},
 
         // Cross street at J1 -- unregulated.
         {.id = kLaneN1_J1, .from = kNodeN1, .to = kNodeJ1, .length = 180.f, .speed_limit = kCrossSpeed},
@@ -178,7 +199,7 @@ std::vector<ts::Junction> make_demo_junctions()
 {
     ts::Junction j1{};
     j1.node_id = kNodeJ1;
-    j1.incoming = {kLaneW_J1, kLaneJ2_J1, kLaneN1_J1, kLaneS1_J1};
+    j1.incoming = {kLaneW0_J1, kLaneJ2_J1, kLaneN1_J1, kLaneS1_J1};
     j1.control = ts::UnregulatedControl{};
 
     ts::Junction j2{};
@@ -193,9 +214,9 @@ std::vector<ts::Junction> make_demo_junctions()
 
     ts::Junction j3{};
     j3.node_id = kNodeJ3;
-    j3.incoming = {kLaneJ2_J3, kLaneE_J3, kLaneN3_J3, kLaneS3_J3};
+    j3.incoming = {kLaneJ2_J3, kLaneE0_J3, kLaneN3_J3, kLaneS3_J3};
     j3.control = ts::TrafficLightControl{.phases = {
-                                             {.green_lanes = {kLaneJ2_J3, kLaneE_J3}, .duration = 8.f},
+                                             {.green_lanes = {kLaneJ2_J3, kLaneE0_J3}, .duration = 8.f},
                                              {.green_lanes = {kLaneN3_J3, kLaneS3_J3}, .duration = 8.f},
                                          }};
 
@@ -219,7 +240,8 @@ void spawn_stream(ts::SimEngine& engine, ts::NodeId origin_node, ts::NodeId dest
 {
     auto route = engine.compute_route(origin_node, dest_node);
     if (!route || route->empty()) {
-        LOG_WARNING(ts::log::get(), "no route from node {} to node {}, skipping stream", origin_node, dest_node);
+        LOG_WARNING(ts::log::get(), "no route from node {} to node {}, skipping stream", origin_node.get(),
+                    dest_node.get());
         return;
     }
 
@@ -227,7 +249,7 @@ void spawn_stream(ts::SimEngine& engine, ts::NodeId origin_node, ts::NodeId dest
         float random_speed = generate_rand(5.0f, 10.0f);
 
         ts::Vehicle v{
-            .id = id_start + static_cast<ts::VehicleId>(i),
+            .id = static_cast<ts::VehicleId>(id_start.get() + i),
             .type = ts::VehicleType::Car,
             .idm_params = ts::default_params(ts::VehicleType::Car),
             .speed = random_speed,
@@ -244,20 +266,20 @@ void spawn_stream(ts::SimEngine& engine, ts::NodeId origin_node, ts::NodeId dest
 void spawn_demo_vehicles(ts::SimEngine& engine)
 {
     // Main road through traffic, both directions -- crosses all three junctions.
-    spawn_stream(engine, kNodeW, kNodeE, /*id_start=*/0, /*count=*/10);
-    spawn_stream(engine, kNodeE, kNodeW, /*id_start=*/1000, /*count=*/10);
+    spawn_stream(engine, kNodeW0, kNodeE0, ts::VehicleId{0}, 10);
+    spawn_stream(engine, kNodeE0, kNodeW0, ts::VehicleId{1000}, 10);
 
     // Cross traffic at J1 (unregulated).
-    spawn_stream(engine, kNodeN1, kNodeS1, /*id_start=*/2000, /*count=*/3);
-    spawn_stream(engine, kNodeS1, kNodeN1, /*id_start=*/3000, /*count=*/3);
+    spawn_stream(engine, kNodeN1, kNodeS1, ts::VehicleId{2000}, 3);
+    spawn_stream(engine, kNodeS1, kNodeN1, ts::VehicleId{3000}, 3);
 
     // Cross traffic at J2 (priority signs -- yields to the main road).
-    spawn_stream(engine, kNodeN2, kNodeS2, /*id_start=*/4000, /*count=*/3);
-    spawn_stream(engine, kNodeS2, kNodeN2, /*id_start=*/5000, /*count=*/3);
+    spawn_stream(engine, kNodeN2, kNodeS2, ts::VehicleId{4000}, 3);
+    spawn_stream(engine, kNodeS2, kNodeN2, ts::VehicleId{5000}, 3);
 
     // Cross traffic at J3 (traffic light).
-    spawn_stream(engine, kNodeN3, kNodeS3, /*id_start=*/6000, /*count=*/4);
-    spawn_stream(engine, kNodeS3, kNodeN3, /*id_start=*/7000, /*count=*/4);
+    spawn_stream(engine, kNodeN3, kNodeS3, ts::VehicleId{6000}, 4);
+    spawn_stream(engine, kNodeS3, kNodeN3, ts::VehicleId{7000}, 4);
 }
 
 }  // namespace

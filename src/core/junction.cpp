@@ -6,6 +6,7 @@
 
 #include "core/log.hpp"
 #include "core/road_graph.hpp"
+#include "core/types.hpp"
 
 namespace ts {
 
@@ -47,7 +48,7 @@ void JunctionMap::rebuild(std::vector<Junction> junctions, std::span<const RoadN
             junction.pos = node->pos;
         }
         else {
-            LOG_WARNING(log::get(), "junction references unknown node {}", junction.node_id);
+            LOG_WARNING(log::get(), "junction references unknown node {}", junction.node_id.get());
         }
 
         junction.lines_from.clear();
@@ -60,8 +61,8 @@ void JunctionMap::rebuild(std::vector<Junction> junctions, std::span<const RoadN
                 junction.lines_from[lane_id] = from_node->pos;
             }
             else {
-                LOG_WARNING(log::get(), "junction {}: can't resolve approach geometry for lane {}", junction.node_id,
-                            lane_id);
+                LOG_WARNING(log::get(), "junction {}: can't resolve approach geometry for lane {}",
+                            junction.node_id.get(), lane_id.get());
             }
         }
     }
@@ -96,7 +97,8 @@ void JunctionMap::advance_signals(float dt)
         if (light_ctl->phase_elapsed >= current.duration) {
             light_ctl->phase_elapsed -= current.duration;
             light_ctl->phase_idx = (light_ctl->phase_idx + 1) % light_ctl->phases.size();
-            LOG_INFO(log::get(), "junction {} signal advanced to phase {}", junction.node_id, light_ctl->phase_idx);
+            LOG_INFO(log::get(), "junction {} signal advanced to phase {}", junction.node_id.get(),
+                     light_ctl->phase_idx);
         }
     }
 }

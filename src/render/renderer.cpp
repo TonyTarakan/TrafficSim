@@ -4,6 +4,8 @@
 #include <cmath>
 #include <optional>
 
+#include "core/types.hpp"
+
 namespace ts {
 
 namespace {

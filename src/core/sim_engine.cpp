@@ -10,6 +10,7 @@
 #include "core/junction.hpp"
 #include "core/lane_change.hpp"
 #include "core/log.hpp"
+#include "core/types.hpp"
 
 namespace ts {
 
@@ -152,7 +153,7 @@ void SimEngine::tick()
                     if (virt_leader) {
                         float junction_accel = idm::accelerate(v.idm_params, v.speed, virt_leader);
                         if (junction_accel < accel) {
-                            LOG_TRACE_L1(log::get(), "vehicle {} yields at junction, {:.1f}m to the line", v.id,
+                            LOG_TRACE_L1(log::get(), "vehicle {} yields at junction, {:.1f}m to the line", v.id.get(),
                                          virt_leader->gap);
                         }
 

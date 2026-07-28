@@ -4,11 +4,10 @@
 #include <vector>
 
 #include "core/idm.hpp"
-#include "core/road_graph.hpp"
+#include "core/types.hpp"
+#include "core/vec2d.hpp"
 
 namespace ts {
-
-using VehicleId = std::uint32_t;
 
 enum class VehicleType : std::uint8_t {
     Car,

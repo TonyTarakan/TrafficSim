@@ -7,6 +7,7 @@
 #include "concurrency/triple_buffer.hpp"
 #include "core/junction.hpp"
 #include "core/road_graph.hpp"
+#include "core/types.hpp"
 #include "core/vehicle.hpp"
 
 // Owns the simulation world and drives it forward one fixed step at a time.

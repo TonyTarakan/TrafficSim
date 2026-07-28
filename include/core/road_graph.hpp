@@ -6,19 +6,13 @@
 #include <unordered_map>
 #include <vector>
 
+#include "core/types.hpp"
 #include "core/vec2d.hpp"
 
 // Road network primitives: nodes, lanes, and the graph connecting them.
 // Supports multi-level interchanges via elevation (z) on nodes.
 
 namespace ts {
-
-// TODO: strong types
-using NodeId = std::uint32_t;
-using LaneId = std::uint32_t;
-
-inline constexpr NodeId kInvalidNode = static_cast<NodeId>(-1);
-inline constexpr LaneId kInvalidLane = static_cast<LaneId>(-1);
 
 // Junction point
 struct RoadNode {
