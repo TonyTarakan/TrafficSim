@@ -136,6 +136,22 @@ void SimEngine::tick()
         },
         vehicles_.size());
 
+    // Snapshot junction-yield decisions too, for the same reason: this
+    // scans ALL of vehicles_ (any vehicle on a rival lane can block ego),
+    // not just index i. Computing it in the same pass that mutates
+    // vehicles_[i].speed/offset would race
+    std::vector<std::optional<idm::LeaderInfo>> junction_leaders(vehicles_.size());
+    pool_.parallel_for(
+        [&](std::size_t begin, std::size_t end) {
+            for (std::size_t i = begin; i < end; ++i) {
+                const Lane* cur_lane = find_lane(vehicles_[i].lane_id);
+                if (cur_lane) {  // TODO: is it OK when the vehicle is out of lane?
+                    junction_leaders[i] = leader_to_yield(vehicles_[i], *cur_lane, junctions_, vehicles_, lanes_);
+                }
+            }
+        },
+        vehicles_.size());
+
     pool_.parallel_for(
         [&](std::size_t begin, std::size_t end) {
             for (std::size_t i = begin; i < end; ++i) {
@@ -146,19 +162,14 @@ void SimEngine::tick()
 
                 // A junction the current lane feeds into
                 // acts as a second, independent obstacle (virtual leader).
-                const Lane* cur_lane = find_lane(v.lane_id);
-                if (cur_lane) {  // TODO: is it OK when the vehicle is out of lane?
-
-                    auto virt_leader = leader_to_yield(v, *cur_lane, junctions_, vehicles_, lanes_);
-                    if (virt_leader) {
-                        float junction_accel = idm::accelerate(v.idm_params, v.speed, virt_leader);
-                        if (junction_accel < accel) {
-                            LOG_TRACE_L1(log::get(), "vehicle {} yields at junction, {:.1f}m to the line", v.id.get(),
-                                         virt_leader->gap);
-                        }
-
-                        accel = std::min(accel, junction_accel);  // if we had a real leader, more restrictive wins
+                if (junction_leaders[i]) {
+                    float junction_accel = idm::accelerate(v.idm_params, v.speed, junction_leaders[i]);
+                    if (junction_accel < accel) {
+                        LOG_TRACE_L1(log::get(), "vehicle {} yields at junction, {:.1f}m to the line", v.id.get(),
+                                     junction_leaders[i]->gap);
                     }
+
+                    accel = std::min(accel, junction_accel);  // if we had a real leader, more restrictive wins
                 }
 
                 float new_speed = std::max(0.f, v.speed + accel * config_.fixed_dt);  // speed >= 0

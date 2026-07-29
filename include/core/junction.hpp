@@ -17,8 +17,6 @@
 
 namespace ts {
 
-using JunctionIdx = std::uint32_t;
-
 struct UnregulatedControl {
     // TODO
 };
