@@ -1,13 +1,18 @@
 #include "core/road_graph.hpp"
 
+#include <quill/LogMacros.h>
+
 #include <algorithm>
 #include <cassert>
 #include <cmath>
+#include <format>
 #include <queue>
 
+#include "core/log.hpp"
 #include "core/types.hpp"
 
 namespace ts {
+
 RoadGraph::RoadGraph(std::vector<Node> nodes, std::vector<Edge> edges)
     : nodes_(std::move(nodes)), edges_(std::move(edges))
 {
@@ -40,23 +45,27 @@ void RoadGraph::build_indices()
     }
 }
 
+// TODO: handle or throw?
 const Node& RoadGraph::get_node(NodeId id) const
 {
-    assert(id.get() < nodes_.size());
+    if (id.get() >= nodes_.size()) {
+        throw std::out_of_range(std::format("Invalid NodeId in RoadGraph::get_node {} {} ", id.get(), nodes_.size()));
+    }
     return nodes_[id.get()];
 }
 
+// TODO: handle or throw?
 const Edge& RoadGraph::get_edge(EdgeId id) const
 {
-    assert(id.get() < edges_.size());
+    if (id.get() >= edges_.size()) {
+        throw std::out_of_range(std::format("Invalid EdgeId in RoadGraph::get_edge {} {} ", id.get(), nodes_.size()));
+    }
     return edges_[id.get()];
 }
 
 std::span<const EdgeId> RoadGraph::outgoing_lanes(NodeId node) const
 {
-    if (node.get() < nodes_.size()) {
-        return {};
-    }
+    if (node.get() >= nodes_.size()) return {};
 
     uint32_t start = outgoing_offsets_[node.get()];
     uint32_t count = outgoing_offsets_[node.get() + 1] - start;
@@ -66,10 +75,9 @@ std::span<const EdgeId> RoadGraph::outgoing_lanes(NodeId node) const
 
 NodeId RoadGraph::destination_node(EdgeId edge) const
 {
-    if (edge.get() < edges_.size())
-        return kInvalidNode;
-    else
-        return edges_[edge.get()].to;
+    if (edge.get() >= edges_.size()) return kInvalidNode;
+
+    return edges_[edge.get()].to;
 }
 
 // A* over the lane graph

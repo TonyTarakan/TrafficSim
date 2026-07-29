@@ -10,6 +10,9 @@ using namespace ts;
 TEST(SimEngine, EmptyWorldDoesNotCrash)
 {
     SimEngine engine;
+    std::vector<Node> nodes = {{.id = NodeId{0}, .pos = {.x = 0, .y = 0}}, {.id = NodeId{1}, .pos = {.x = 10, .y = 0}}};
+    std::vector<Edge> edges = {{.id = EdgeId{0}, .from = NodeId{0}, .to = NodeId{1}, .length = 10, .speed_limit = 10}};
+    engine.set_map(nodes, edges);
     engine.tick();
     engine.tick();
     EXPECT_GT(engine.sim_time(), 0.0);
@@ -18,6 +21,9 @@ TEST(SimEngine, EmptyWorldDoesNotCrash)
 TEST(SimEngine, SingleVehicleAcceleratesTowardDesiredSpeed)
 {
     SimEngine engine;
+    std::vector<Node> nodes = {{.id = NodeId{0}, .pos = {.x = 0, .y = 0}}, {.id = NodeId{1}, .pos = {.x = 10, .y = 0}}};
+    std::vector<Edge> edges = {{.id = EdgeId{0}, .from = NodeId{0}, .to = NodeId{1}, .length = 10, .speed_limit = 10}};
+    engine.set_map(nodes, edges);
 
     Vehicle v{.id = VehicleId{0},
               .type = VehicleType::Car,
@@ -40,6 +46,9 @@ TEST(SimEngine, SingleVehicleAcceleratesTowardDesiredSpeed)
 TEST(SimEngine, FollowerNeverPassesSlowerLeader)
 {
     SimEngine engine;
+    std::vector<Node> nodes = {{.id = NodeId{0}, .pos = {.x = 0, .y = 0}}, {.id = NodeId{1}, .pos = {.x = 10, .y = 0}}};
+    std::vector<Edge> edges = {{.id = EdgeId{0}, .from = NodeId{0}, .to = NodeId{1}, .length = 10, .speed_limit = 10}};
+    engine.set_map(nodes, edges);
 
     Vehicle leader{.id = VehicleId{0},
                    .idm_params = default_params(VehicleType::Car),
@@ -71,6 +80,9 @@ TEST(SimEngine, FollowerMatchesGenuinelySlowerLeaderAtSteadyState)
     // accelerating toward the default 13.9 m/s. That makes this a real
     // steady-state car-following scenario, not a two-vehicle drag race.
     SimEngine engine;
+    std::vector<Node> nodes = {{.id = NodeId{0}, .pos = {.x = 0, .y = 0}}, {.id = NodeId{1}, .pos = {.x = 10, .y = 0}}};
+    std::vector<Edge> edges = {{.id = EdgeId{0}, .from = NodeId{0}, .to = NodeId{1}, .length = 10, .speed_limit = 10}};
+    engine.set_map(nodes, edges);
 
     Vehicle leader{.id = VehicleId{0},
                    .idm_params = default_params(VehicleType::Car),  // default desired_speed = 15 m/s
@@ -100,7 +112,10 @@ TEST(SimEngine, SimTimeAdvancesByFixedDt)
 {
     SimConfig config;
     config.fixed_dt = 0.02f;  // 50Hz
-    SimEngine engine(config);
+    SimEngine engine;
+    std::vector<Node> nodes = {{.id = NodeId{0}, .pos = {.x = 0, .y = 0}}, {.id = NodeId{1}, .pos = {.x = 10, .y = 0}}};
+    std::vector<Edge> edges = {{.id = EdgeId{0}, .from = NodeId{0}, .to = NodeId{1}, .length = 10, .speed_limit = 10}};
+    engine.set_map(nodes, edges);
 
     engine.tick();
     EXPECT_NEAR(engine.sim_time(), 0.02, 1e-6);

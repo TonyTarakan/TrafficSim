@@ -8,31 +8,35 @@ using namespace ts;
 
 namespace {
 
-// Four-way crossroads at node 10, (0, 0): approaches from east, north,
+// Four-way crossroads at node 0, (0, 0): approaches from east, north,
 // west and south. World coords are y-down (screen space), so "north" is
 // -y and "south" is +y.
 //
-//              north_in (101, y=-50)
+//              north_in (2, y=-50)
 //                    |
-//   west_in (104) -- 10 (0,0) -- east_in (100, x=50)
+//   west_in (5) -- 0 (0,0) -- east_in (1, x=50)
 //                    |
-//              south_in (105, y=50)
+//              south_in (6, y=50)
 //
+// Node IDs: 0=junction, 1=east_origin, 2=north_origin, 3=east_dest,
+// 4=north_dest, 5=west_origin, 6=south_origin
+// Edge IDs: 0=east_in, 1=north_in, 2=east_out, 3=north_out,
+// 4=west_in, 5=south_in
 struct CrossroadsFixture {
-    Node junction{.id = NodeId{10}, .pos = {.x = 0.f, .y = 0.f}};
-    Node east_origin{.id = NodeId{100}, .pos = {.x = 50.f, .y = 0.f}};
-    Node north_origin{.id = NodeId{101}, .pos = {.x = 0.f, .y = -50.f}};
-    Node east_dest{.id = NodeId{102}, .pos = {.x = 100.f, .y = 0.f}};
-    Node north_dest{.id = NodeId{103}, .pos = {.x = 0.f, .y = -100.f}};
-    Node west_origin{.id = NodeId{104}, .pos = {.x = -50.f, .y = 0.f}};
-    Node south_origin{.id = NodeId{105}, .pos = {.x = 0.f, .y = 50.f}};
+    Node junction{.id = NodeId{0}, .pos = {.x = 0.f, .y = 0.f}};
+    Node east_origin{.id = NodeId{1}, .pos = {.x = 50.f, .y = 0.f}};
+    Node north_origin{.id = NodeId{2}, .pos = {.x = 0.f, .y = -50.f}};
+    Node east_dest{.id = NodeId{3}, .pos = {.x = 100.f, .y = 0.f}};
+    Node north_dest{.id = NodeId{4}, .pos = {.x = 0.f, .y = -100.f}};
+    Node west_origin{.id = NodeId{5}, .pos = {.x = -50.f, .y = 0.f}};
+    Node south_origin{.id = NodeId{6}, .pos = {.x = 0.f, .y = 50.f}};
 
-    Edge east_in{.id = EdgeId{0}, .from = NodeId{100}, .to = NodeId{10}, .length = 50.f};
-    Edge north_in{.id = EdgeId{1}, .from = NodeId{101}, .to = NodeId{10}, .length = 50.f};
-    Edge east_out{.id = EdgeId{2}, .from = NodeId{10}, .to = NodeId{102}, .length = 50.f};
-    Edge north_out{.id = EdgeId{3}, .from = NodeId{10}, .to = NodeId{103}, .length = 50.f};
-    Edge west_in{.id = EdgeId{4}, .from = NodeId{104}, .to = NodeId{10}, .length = 50.f};
-    Edge south_in{.id = EdgeId{5}, .from = NodeId{105}, .to = NodeId{10}, .length = 50.f};
+    Edge east_in{.id = EdgeId{0}, .from = NodeId{1}, .to = NodeId{0}, .length = 50.f};
+    Edge north_in{.id = EdgeId{1}, .from = NodeId{2}, .to = NodeId{0}, .length = 50.f};
+    Edge east_out{.id = EdgeId{2}, .from = NodeId{0}, .to = NodeId{3}, .length = 50.f};
+    Edge north_out{.id = EdgeId{3}, .from = NodeId{0}, .to = NodeId{4}, .length = 50.f};
+    Edge west_in{.id = EdgeId{4}, .from = NodeId{5}, .to = NodeId{0}, .length = 50.f};
+    Edge south_in{.id = EdgeId{5}, .from = NodeId{6}, .to = NodeId{0}, .length = 50.f};
 
     [[nodiscard]]
     std::vector<Edge> all_lanes() const
@@ -49,7 +53,7 @@ struct CrossroadsFixture {
     [[nodiscard]]
     RoadGraph build_graph() const
     {
-        return {all_nodes(), all_lanes()};
+        return RoadGraph{all_nodes(), all_lanes()};
     }
 };
 
@@ -76,7 +80,7 @@ TEST(TrafficLightControl, RespectsCurrentPhase)
 TEST(TrafficLightControl, AdvanceSignalsCyclesPhases)
 {
     Junction j;
-    j.node_id = NodeId{10};
+    j.node_id = NodeId{0};
     j.incoming = {EdgeId{0}, EdgeId{1}};
     j.control = TrafficLightControl{.phases = {
                                         {.green_lanes = {EdgeId{0}}, .duration = 10.f},
@@ -89,7 +93,7 @@ TEST(TrafficLightControl, AdvanceSignalsCyclesPhases)
 
     map.advance_signals(10.f);  // exactly one phase length
 
-    const auto* light = std::get_if<TrafficLightControl>(&map.find_by_node(NodeId{10})->control);
+    const auto* light = std::get_if<TrafficLightControl>(&map.find_by_node(NodeId{0})->control);
     ASSERT_NE(light, nullptr);
     EXPECT_EQ(light->phase_idx, 1u);
     EXPECT_TRUE(light->is_green(EdgeId{1}));
@@ -99,16 +103,16 @@ TEST(TrafficLightControl, AdvanceSignalsCyclesPhases)
 TEST(JunctionMap, FindByNodeAndLane)
 {
     Junction j;
-    j.node_id = NodeId{10};
+    j.node_id = NodeId{0};
     j.incoming = {EdgeId{0}, EdgeId{1}};
 
     JunctionMap map;
     RoadGraph empty_graph(std::vector<Node>{}, std::vector<Edge>{});
     map.rebuild({j}, empty_graph);
 
-    EXPECT_EQ(map.find_by_node(NodeId{10})->node_id, NodeId{10});
-    EXPECT_EQ(map.find_by_lane(EdgeId{0})->node_id, NodeId{10});
-    EXPECT_EQ(map.find_by_lane(EdgeId{1})->node_id, NodeId{10});
+    EXPECT_EQ(map.find_by_node(NodeId{0})->node_id, NodeId{0});
+    EXPECT_EQ(map.find_by_lane(EdgeId{0})->node_id, NodeId{0});
+    EXPECT_EQ(map.find_by_lane(EdgeId{1})->node_id, NodeId{0});
     EXPECT_EQ(map.find_by_node(NodeId{999}), nullptr);
     EXPECT_EQ(map.find_by_lane(EdgeId{999}), nullptr);
 }
@@ -116,13 +120,13 @@ TEST(JunctionMap, FindByNodeAndLane)
 TEST(JunctionMap, RebuildResolvesGeometryFromNodesAndLanes)
 {
     CrossroadsFixture f;
-    Junction j{.node_id = NodeId{10}, .incoming = {EdgeId{0}, EdgeId{1}}};
+    Junction j{.node_id = NodeId{0}, .incoming = {EdgeId{0}, EdgeId{1}}};
 
     JunctionMap map;
     auto graph = f.build_graph();
     map.rebuild({j}, graph);
 
-    const Junction* resolved = map.find_by_node(NodeId{10});
+    const Junction* resolved = map.find_by_node(NodeId{0});
     ASSERT_NE(resolved, nullptr);
     EXPECT_FLOAT_EQ(resolved->pos.x, 0.f);
     EXPECT_FLOAT_EQ(resolved->pos.y, 0.f);
@@ -154,7 +158,7 @@ TEST(JunctionMap, RebuildLeavesGeometryUnresolvedForUnknownIds)
 TEST(FindJunctionYield, PriorityLaneWithNoRivalsProceeds)
 {
     CrossroadsFixture f;
-    Junction j{.node_id = NodeId{10},
+    Junction j{.node_id = NodeId{0},
                .incoming = {EdgeId{0}, EdgeId{1}},
                .control = PriorityControl{.yields_to = {{EdgeId{1}, {EdgeId{0}}}}}};  // lane 1 yields to lane 0
     JunctionMap map;
@@ -170,7 +174,7 @@ TEST(FindJunctionYield, PriorityLaneWithNoRivalsProceeds)
 TEST(FindJunctionYield, MinorLaneYieldsToCloseRival)
 {
     CrossroadsFixture f;
-    Junction j{.node_id = NodeId{10},
+    Junction j{.node_id = NodeId{0},
                .incoming = {EdgeId{0}, EdgeId{1}},
                .control = PriorityControl{.yields_to = {{EdgeId{1}, {EdgeId{0}}}}}};
     JunctionMap map;
@@ -190,7 +194,7 @@ TEST(FindJunctionYield, MinorLaneYieldsToCloseRival)
 TEST(FindJunctionYield, MinorLaneProceedsWhenGapIsWideEnough)
 {
     CrossroadsFixture f;
-    Junction j{.node_id = NodeId{10},
+    Junction j{.node_id = NodeId{0},
                .incoming = {EdgeId{0}, EdgeId{1}},
                .control = PriorityControl{.yields_to = {{EdgeId{1}, {EdgeId{0}}}}}};
     JunctionMap map;
@@ -209,7 +213,7 @@ TEST(FindJunctionYield, MinorLaneProceedsWhenGapIsWideEnough)
 TEST(FindJunctionYield, YieldsWhileJunctionBoxIsOccupied)
 {
     CrossroadsFixture f;
-    Junction j{.node_id = NodeId{10},
+    Junction j{.node_id = NodeId{0},
                .incoming = {EdgeId{0}, EdgeId{1}},
                .control = PriorityControl{.yields_to = {{EdgeId{1}, {EdgeId{0}}}}}};
     JunctionMap map;
@@ -228,7 +232,7 @@ TEST(FindJunctionYield, YieldsWhileJunctionBoxIsOccupied)
 TEST(FindJunctionYield, RedLightForcesStop)
 {
     CrossroadsFixture f;
-    Junction j{.node_id = NodeId{10},
+    Junction j{.node_id = NodeId{0},
                .incoming = {EdgeId{0}, EdgeId{1}},
                .control = TrafficLightControl{.phases = {
                                                   {.green_lanes = {EdgeId{0}}, .duration = 10.f},
@@ -247,7 +251,7 @@ TEST(FindJunctionYield, RedLightForcesStop)
 TEST(FindJunctionYield, GreenLightProceeds)
 {
     CrossroadsFixture f;
-    Junction j{.node_id = NodeId{10},
+    Junction j{.node_id = NodeId{0},
                .incoming = {EdgeId{0}, EdgeId{1}},
                .control = TrafficLightControl{.phases = {
                                                   {.green_lanes = {EdgeId{0}}, .duration = 10.f},
@@ -265,7 +269,7 @@ TEST(FindJunctionYield, GreenLightProceeds)
 TEST(FindJunctionYield, UnregulatedYieldsToTrafficOnTheRight)
 {
     CrossroadsFixture f;
-    Junction j{.node_id = NodeId{10},
+    Junction j{.node_id = NodeId{0},
                .incoming = {EdgeId{0}, EdgeId{1}, EdgeId{4}, EdgeId{5}},
                .control = UnregulatedControl{}};
     JunctionMap map;
@@ -288,7 +292,7 @@ TEST(FindJunctionYield, UnregulatedYieldsToTrafficOnTheRight)
 TEST(FindJunctionYield, UnregulatedDoesNotYieldToTrafficOnTheLeft)
 {
     CrossroadsFixture f;
-    Junction j{.node_id = NodeId{10},
+    Junction j{.node_id = NodeId{0},
                .incoming = {EdgeId{0}, EdgeId{1}, EdgeId{4}, EdgeId{5}},
                .control = UnregulatedControl{}};
     JunctionMap map;
@@ -308,7 +312,7 @@ TEST(FindJunctionYield, UnregulatedDoesNotYieldToTrafficOnTheLeft)
 TEST(FindJunctionYield, UnregulatedDoesNotYieldToOncomingTraffic)
 {
     CrossroadsFixture f;
-    Junction j{.node_id = NodeId{10},
+    Junction j{.node_id = NodeId{0},
                .incoming = {EdgeId{0}, EdgeId{1}, EdgeId{4}, EdgeId{5}},
                .control = UnregulatedControl{}};
     JunctionMap map;
@@ -330,7 +334,7 @@ TEST(FindJunctionYield, UnregulatedIsNonReciprocal)
     // The car that has the right of way must not also yield to the car
     // that's yielding to it.
     CrossroadsFixture f;
-    Junction j{.node_id = NodeId{10},
+    Junction j{.node_id = NodeId{0},
                .incoming = {EdgeId{0}, EdgeId{1}, EdgeId{4}, EdgeId{5}},
                .control = UnregulatedControl{}};
     JunctionMap map;

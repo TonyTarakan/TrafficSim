@@ -58,8 +58,6 @@ struct Junction {
 // Registry of all junctions on the current map.
 class JunctionMap {
 public:
-    // 'nodes'/'lanes' are the same map data passed to RoadGraph::rebuild();
-    // used once here to resolve each junction, not stored afterwards.
     void rebuild(std::vector<Junction> junctions, const RoadGraph& graph);
 
     [[nodiscard]] const Junction* find_by_node(NodeId node_id) const;

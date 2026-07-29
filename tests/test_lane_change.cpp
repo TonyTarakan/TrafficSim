@@ -10,9 +10,11 @@ using namespace ts;
 TEST(LaneChange, SwitchesAwayFromSlowBlockerWhenAdjacentLaneIsFree)
 {
     SimEngine engine;
-    std::vector<Node> nodes{};
-    std::vector<Edge> lanes{
+    std::vector<Node> nodes = {{.id = NodeId{0}, .pos = {.x = 0.f, .y = 0.f}},
+                               {.id = NodeId{1}, .pos = {.x = 500.f, .y = 0.f}}};
+    std::vector<Edge> lanes = {
         {.id = EdgeId{0}, .from = NodeId{0}, .to = NodeId{1}, .length = 500.f, .speed_limit = 20.f, .lane_count = 2}};
+
     engine.set_map(nodes, lanes);
     std::uint8_t initial_sublane_idx = 0;
 
@@ -49,9 +51,10 @@ TEST(LaneChange, SwitchesAwayFromSlowBlockerWhenAdjacentLaneIsFree)
 TEST(LaneChange, NeverSwitchesOnASingleLaneRoad)
 {
     SimEngine engine;
-    std::vector<Node> nodes{};
-    std::vector<Edge> lanes{
-        {.id = EdgeId{0}, .from = NodeId{0}, .to = NodeId{1}, .length = 500.f, .speed_limit = 20.f, .lane_count = 1}};
+    std::vector<Node> nodes = {{.id = NodeId{0}, .pos = {.x = 0.f, .y = 0.f}},
+                               {.id = NodeId{1}, .pos = {.x = 500.f, .y = 0.f}}};
+    std::vector<Edge> lanes = {
+        {.id = EdgeId{0}, .from = NodeId{0}, .to = NodeId{1}, .length = 500.f, .speed_limit = 20.f, .lane_count = 2}};
     engine.set_map(nodes, lanes);
     std::uint8_t initial_sublane_idx = 0;
 
@@ -73,8 +76,9 @@ TEST(LaneChange, NeverSwitchesOnASingleLaneRoad)
 TEST(LaneChange, StaysPutWhenThereIsNothingToGain)
 {
     SimEngine engine;
-    std::vector<Node> nodes{};
-    std::vector<Edge> lanes{
+    std::vector<Node> nodes = {{.id = NodeId{0}, .pos = {.x = 0.f, .y = 0.f}},
+                               {.id = NodeId{1}, .pos = {.x = 500.f, .y = 0.f}}};
+    std::vector<Edge> lanes = {
         {.id = EdgeId{0}, .from = NodeId{0}, .to = NodeId{1}, .length = 500.f, .speed_limit = 20.f, .lane_count = 2}};
     engine.set_map(nodes, lanes);
 
@@ -101,9 +105,10 @@ TEST(LaneChange, SafetyCriterionBlocksDangerousMerge)
     // merge point, should prevent the switch even though the slow blocker
     // ahead would otherwise make it attractive.
     SimEngine engine;
-    std::vector<Node> nodes{};
-    std::vector<Edge> lanes{
-        {.id = EdgeId{0}, .from = NodeId{0}, .to = NodeId{1}, .length = 500.f, .speed_limit = 30.f, .lane_count = 2}};
+    std::vector<Node> nodes = {{.id = NodeId{0}, .pos = {.x = 0.f, .y = 0.f}},
+                               {.id = NodeId{1}, .pos = {.x = 500.f, .y = 0.f}}};
+    std::vector<Edge> lanes = {
+        {.id = EdgeId{0}, .from = NodeId{0}, .to = NodeId{1}, .length = 500.f, .speed_limit = 20.f, .lane_count = 2}};
     engine.set_map(nodes, lanes);
 
     Vehicle slow_blocker{.id = VehicleId{0},
