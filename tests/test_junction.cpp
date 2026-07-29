@@ -117,7 +117,7 @@ TEST(JunctionMap, FindByNodeAndLane)
     EXPECT_EQ(map.find_by_edge(EdgeId{999}), nullptr);
 }
 
-TEST(JunctionMap, RebuildResolvesGeometryFromNodesAndLanes)
+TEST(JunctionMap, RebuildResolvesGeometryFromNodesAndEdges)
 {
     CrossroadsFixture f;
     Junction j{.node_id = NodeId{0}, .incoming = {EdgeId{0}, EdgeId{1}}};
@@ -148,7 +148,7 @@ TEST(JunctionMap, RebuildLeavesGeometryUnresolvedForUnknownIds)
 
     JunctionMap map;
     RoadGraph empty_graph(std::vector<Node>{}, std::vector<Edge>{});
-    map.rebuild({j}, empty_graph);  // no nodes/lanes -- shouldn't crash, just leaves defaults
+    map.rebuild({j}, empty_graph);
 
     const Junction* resolved = map.find_by_node(NodeId{999});
     ASSERT_NE(resolved, nullptr);

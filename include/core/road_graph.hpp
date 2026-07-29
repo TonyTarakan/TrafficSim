@@ -56,7 +56,7 @@ public:
     [[nodiscard]] std::span<const EdgeId> outgoing_edges(NodeId node) const;
 
     // The node a edge leads into.
-    [[nodiscard]] NodeId destination_node(EdgeId edge) const;
+    [[nodiscard]] NodeId destination_node(EdgeId edge) const;  // TODO: do we need this func?
 
     [[nodiscard]] size_t node_count() const noexcept { return nodes_.size(); }
     [[nodiscard]] size_t edge_count() const noexcept { return edges_.size(); }

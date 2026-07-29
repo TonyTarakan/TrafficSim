@@ -164,7 +164,7 @@ bool approaches_from_the_right(Vec2D junction_pos, Vec2D ego_from, Vec2D rival_f
     return ego_right.dot_prod(rival_origin_dir) > kRightHandEpsilon;
 }
 
-// Uses cached geometry of lanes.
+// TODO: check logic
 std::vector<EdgeId> right_hand_rivals(const Junction& junction, const Edge& ego_lane)
 {
     std::vector<EdgeId> rivals;

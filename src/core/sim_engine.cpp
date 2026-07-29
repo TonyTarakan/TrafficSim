@@ -105,8 +105,8 @@ void SimEngine::tick()
             for (std::size_t i = begin; i < end; ++i) {
                 Vehicle& v = vehicles_[i];
                 if (v.lane_change_cooldown > 0.f) continue;
-                const Edge* lane = find_edge(v.edge_id);
-                std::uint8_t num_sublanes = lane ? lane->lane_count : 1;
+                const Edge* edge = find_edge(v.edge_id);
+                std::uint8_t num_sublanes = edge ? edge->lane_count : 1;
                 sublane_deltas[i] = decide(v, vehicles_, num_sublanes);
             }
         },

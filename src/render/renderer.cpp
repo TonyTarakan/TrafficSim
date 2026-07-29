@@ -40,11 +40,11 @@ Vec2D perpendicular(Vec2D from, Vec2D to)
 
 // World position of the stop line.
 // TODO: make it look good
-std::optional<Vec2D> lane_stop_line(std::span<const Node> nodes, std::span<const Edge> lanes, EdgeId lane_id)
+std::optional<Vec2D> lane_stop_line(std::span<const Node> nodes, std::span<const Edge> edges, EdgeId edge_id)
 {
     constexpr float kPullbackM = 15.0f;
 
-    const Edge* lane = find_edge(lanes, lane_id);
+    const Edge* lane = find_edge(edges, edge_id);
     if (!lane) return std::nullopt;
 
     const Node* from = find_node(nodes, lane->from);
@@ -130,11 +130,11 @@ struct overloaded : Ts... {
 
 }  // namespace
 
-void Renderer::draw_edges(std::span<const Node> nodes, std::span<const Edge> lanes, const Camera& camera)
+void Renderer::draw_edges(std::span<const Node> nodes, std::span<const Edge> edges, const Camera& camera)
 {
     SDL_SetRenderDrawColor(sdl_renderer_, 90, 90, 90, 255);
 
-    for (const auto& lane : lanes) {
+    for (const auto& lane : edges) {
         const Node* from = find_node(nodes, lane.from);
         const Node* to = find_node(nodes, lane.to);
         if (!from || !to) {
@@ -144,7 +144,7 @@ void Renderer::draw_edges(std::span<const Node> nodes, std::span<const Edge> lan
         Vec2D perp = perpendicular(from->pos, to->pos);
 
         // One line per sublane, so a multi-lane road actually looks like one.
-        // TODO: fix offsets for overlapping lanes
+        // TODO: fix offsets for overlapping lanes/edges
         for (std::uint8_t sub = 1; sub < lane.lane_count + 1; ++sub) {
             Vec2D lane_offset = perp * (static_cast<float>(sub) * kSublaneWidthM);
             Vec2D p1 = camera.to_screen(from->pos + lane_offset);
@@ -154,15 +154,16 @@ void Renderer::draw_edges(std::span<const Node> nodes, std::span<const Edge> lan
     }
 }
 
+// TODO: use graph?
 void Renderer::draw_vehicles(std::span<const Vehicle> vehicles, std::span<const Node> nodes,
-                             std::span<const Edge> lanes, const Camera& camera)
+                             std::span<const Edge> edges, const Camera& camera)
 {
     SDL_SetRenderDrawColor(sdl_renderer_, 220, 180, 60, 255);
 
     constexpr float kVehicleSizePx = 8.f;  // TODO: meters?
 
     for (const auto& v : vehicles) {
-        const Edge* lane = find_edge(lanes, v.edge_id);
+        const Edge* lane = find_edge(edges, v.edge_id);
         if (!lane) continue;
 
         const Node* from = find_node(nodes, lane->from);
@@ -187,7 +188,7 @@ void Renderer::draw_vehicles(std::span<const Vehicle> vehicles, std::span<const 
     }
 }
 
-void Renderer::draw_junctions(std::span<const Node> nodes, std::span<const Edge> lanes,
+void Renderer::draw_junctions(std::span<const Node> nodes, std::span<const Edge> edges,
                               std::span<const Junction> junctions, const Camera& camera)
 {
     for (const auto& junction : junctions) {
@@ -200,7 +201,7 @@ void Renderer::draw_junctions(std::span<const Node> nodes, std::span<const Edge>
             
             [&](const PriorityControl& control) {
                 for (const auto& entry : control.yields_to) {
-                    auto pos = lane_stop_line(nodes, lanes, entry.first);
+                    auto pos = lane_stop_line(nodes, edges, entry.first);
                     if (pos) {
                         draw_yield_marker(sdl_renderer_, camera.to_screen(*pos));
                     }
@@ -210,7 +211,7 @@ void Renderer::draw_junctions(std::span<const Node> nodes, std::span<const Edge>
             [&](const TrafficLightControl& ) {
                 // TODO: draw live signals???
                 for (EdgeId lane_id : junction.incoming) {
-                    auto stop_pos = lane_stop_line(nodes, lanes, lane_id);
+                    auto stop_pos = lane_stop_line(nodes, edges, lane_id);
                     if (stop_pos) {
                         draw_traffic_light(sdl_renderer_, camera.to_screen(*stop_pos));
                     }

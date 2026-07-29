@@ -19,7 +19,7 @@ public:
 
     void draw_edges(std::span<const Node> nodes, std::span<const Edge> edges, const Camera& camera);
 
-    void draw_vehicles(std::span<const Vehicle> vehicles, std::span<const Node> nodes, std::span<const Edge> lanes,
+    void draw_vehicles(std::span<const Vehicle> vehicles, std::span<const Node> nodes, std::span<const Edge> edges,
                        const Camera& camera);
 
     void draw_junctions(std::span<const Node> nodes, std::span<const Edge> edges, std::span<const Junction> junctions,
