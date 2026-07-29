@@ -15,7 +15,7 @@ bool TrafficLightControl::is_green(EdgeId lane) const
     if (phases.empty()) return true;
 
     const SignalPhase& current = phases[phase_idx % phases.size()];
-    return (std::ranges::find(current.green_lanes, lane) != current.green_lanes.end());
+    return (std::ranges::find(current.green_edges, lane) != current.green_edges.end());
 }
 
 void JunctionMap::rebuild(std::vector<Junction> junctions, const RoadGraph& graph)
@@ -130,13 +130,13 @@ bool someone_is_approaching(const Edge& rival_lane, std::span<const Vehicle> all
     return false;
 }
 
-// Box rule + gap acceptance against an explicit set of rival lanes, shared
+// Box rule + gap acceptance against an explicit set of rival edges, shared
 // by PriorityControl (rivals from the sign) and UnregulatedControl
 // (rivals worked out from geometry).
-bool yields_to_rivals(const Junction& junction, VehicleId ego_id, std::span<const EdgeId> rival_lanes,
+bool yields_to_rivals(const Junction& junction, VehicleId ego_id, std::span<const EdgeId> rival_edges,
                       std::span<const Vehicle> all_vehicles, const RoadGraph& graph)
 {
-    if (rival_lanes.empty()) {
+    if (rival_edges.empty()) {
         return false;
     }
 
@@ -144,7 +144,7 @@ bool yields_to_rivals(const Junction& junction, VehicleId ego_id, std::span<cons
         return true;
     }
 
-    for (EdgeId rid : rival_lanes) {
+    for (EdgeId rid : rival_edges) {
         if (rid.get() >= graph.edge_count()) continue;
         const Edge& e = graph.get_edge(rid);
         if (someone_is_approaching(e, all_vehicles)) return true;

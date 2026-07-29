@@ -64,7 +64,7 @@ TEST(Lane, CanConfigureMultiLaneSegment)
 
 namespace {
 
-// Simple square loop: 0 -> 1 -> 2 -> 3 -> 0, all lanes 100m @ 13.9 m/s.
+// Simple square loop: 0 -> 1 -> 2 -> 3 -> 0, all edges 100m @ 13.9 m/s.
 std::pair<std::vector<Node>, std::vector<Edge>> make_square()
 {
     std::vector<Node> nodes = {
@@ -86,8 +86,8 @@ std::pair<std::vector<Node>, std::vector<Edge>> make_square()
 
 TEST(RoadGraph, RebuildPopulatesAdjacency)
 {
-    auto [nodes, lanes] = make_square();
-    RoadGraph g{nodes, lanes};
+    auto [nodes, edges] = make_square();
+    RoadGraph g{nodes, edges};
 
     auto out = g.outgoing_edges(NodeId{0});
     ASSERT_EQ(out.size(), 1u);
@@ -96,17 +96,17 @@ TEST(RoadGraph, RebuildPopulatesAdjacency)
 
 TEST(RoadGraph, SinkNodeHasEmptyOutgoing)
 {
-    auto [nodes, lanes] = make_square();
-    lanes.pop_back();  // remove lane 3 -> 0, so node 3 becomes a dead end
-    RoadGraph g{nodes, lanes};
+    auto [nodes, edges] = make_square();
+    edges.pop_back();  // remove lane 3 -> 0, so node 3 becomes a dead end
+    RoadGraph g{nodes, edges};
 
     EXPECT_TRUE(g.outgoing_edges(NodeId{3}).empty());
 }
 
 TEST(RoadGraph, LaneEndNodeIsCorrect)
 {
-    auto [nodes, lanes] = make_square();
-    RoadGraph g{nodes, lanes};
+    auto [nodes, edges] = make_square();
+    RoadGraph g{nodes, edges};
 
     EXPECT_EQ(g.destination_node(EdgeId{0}), NodeId{1});
     EXPECT_EQ(g.destination_node(EdgeId{2}), NodeId{3});
@@ -115,8 +115,8 @@ TEST(RoadGraph, LaneEndNodeIsCorrect)
 
 TEST(RoadGraph, FindRouteSameNodeIsEmptyPath)
 {
-    auto [nodes, lanes] = make_square();
-    RoadGraph g{nodes, lanes};
+    auto [nodes, edges] = make_square();
+    RoadGraph g{nodes, edges};
 
     auto route = g.find_route(NodeId{1}, NodeId{1});
     ASSERT_TRUE(route.has_value());
@@ -125,8 +125,8 @@ TEST(RoadGraph, FindRouteSameNodeIsEmptyPath)
 
 TEST(RoadGraph, FindRouteDirectNeighbour)
 {
-    auto [nodes, lanes] = make_square();
-    RoadGraph g{nodes, lanes};
+    auto [nodes, edges] = make_square();
+    RoadGraph g{nodes, edges};
 
     auto route = g.find_route(NodeId{0}, NodeId{1});
     ASSERT_TRUE(route.has_value());
@@ -136,10 +136,10 @@ TEST(RoadGraph, FindRouteDirectNeighbour)
 
 TEST(RoadGraph, FindRouteMultiHop)
 {
-    auto [nodes, lanes] = make_square();
-    RoadGraph g{nodes, lanes};
+    auto [nodes, edges] = make_square();
+    RoadGraph g{nodes, edges};
 
-    // Only path around the loop is 0 -> 1 -> 2 (lanes are one-directional).
+    // Only path around the loop is 0 -> 1 -> 2 (edges are one-directional).
     auto route = g.find_route(NodeId{0}, NodeId{2});
     ASSERT_TRUE(route.has_value());
     ASSERT_EQ(route->size(), 2u);
@@ -174,9 +174,9 @@ TEST(RoadGraph, FindRoutePicksFasterPathOverShorterOne)
 
 TEST(RoadGraph, FindRouteUnreachableReturnsNullopt)
 {
-    auto [nodes, lanes] = make_square();
-    lanes.pop_back();  // node 3 -> 0 removed, breaks the loop
-    RoadGraph g{nodes, lanes};
+    auto [nodes, edges] = make_square();
+    edges.pop_back();  // node 3 -> 0 removed, breaks the loop
+    RoadGraph g{nodes, edges};
 
     // Node 3 is still reachable from 0, but nothing leads back to 0 from 3.
     auto route = g.find_route(NodeId{3}, NodeId{0});

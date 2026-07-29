@@ -142,7 +142,7 @@ TEST(SimEngine, VehicleStopsAtRedLightJunction)
     // Lane 0's phase never comes up -- an always-red light for this approach.
     Junction junction{.node_id = NodeId{1},
                       .incoming = {EdgeId{0}},
-                      .control = TrafficLightControl{.phases = {{.green_lanes = {}, .duration = 1000.f}}}};
+                      .control = TrafficLightControl{.phases = {{.green_edges = {}, .duration = 1000.f}}}};
     engine.set_junctions({junction});
 
     Vehicle v{.id = VehicleId{0},

@@ -26,9 +26,9 @@ struct PriorityControl {
     std::unordered_map<EdgeId, std::vector<EdgeId>> yields_to;  // Edge yields to others
 };
 
-// Only one lane has green light for duration seconds
+// Only one edge has green light for duration seconds
 struct SignalPhase {
-    std::vector<EdgeId> green_lanes;
+    std::vector<EdgeId> green_edges;
     float duration{30.f};  // seconds
 };
 

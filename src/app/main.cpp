@@ -119,7 +119,7 @@ std::vector<ts::Node> make_demo_nodes()
     };
 }
 
-std::vector<ts::Edge> make_demo_lanes()
+std::vector<ts::Edge> make_demo_edges()
 {
     constexpr float kMainSpeed = 30.f;
     constexpr float kCrossSpeed = 20.f;
@@ -176,8 +176,8 @@ std::vector<ts::Junction> make_demo_junctions()
     j3.node_id = kNodeJ3;
     j3.incoming = {kEdgeJ2_J3, kEdgeE0_J3, kEdgeN3_J3, kEdgeS3_J3};
     j3.control = ts::TrafficLightControl{.phases = {
-                                             {.green_lanes = {kEdgeJ2_J3, kEdgeE0_J3}, .duration = 8.f},
-                                             {.green_lanes = {kEdgeN3_J3, kEdgeS3_J3}, .duration = 8.f},
+                                             {.green_edges = {kEdgeJ2_J3, kEdgeE0_J3}, .duration = 8.f},
+                                             {.green_edges = {kEdgeN3_J3, kEdgeS3_J3}, .duration = 8.f},
                                          }};
 
     return {j1, j2, j3};
@@ -267,13 +267,13 @@ int main(int /*argc*/, char** /*argv*/)
 
     // --- demo scene setup ---
     std::vector<ts::Node> nodes = make_demo_nodes();
-    std::vector<ts::Edge> lanes = make_demo_lanes();
+    std::vector<ts::Edge> edges = make_demo_edges();
     std::vector<ts::Junction> junctions = make_demo_junctions();
     const std::size_t junction_count = junctions.size();
     const std::vector<ts::Junction> junctions_for_render = junctions;
 
     ts::SimEngine engine;
-    engine.set_map(nodes, lanes);
+    engine.set_map(nodes, edges);
     engine.set_junctions(std::move(junctions));
     spawn_demo_vehicles(engine);
 
@@ -321,9 +321,9 @@ int main(int /*argc*/, char** /*argv*/)
         SDL_SetRenderDrawColor(sdl_renderer, 30, 30, 30, 255);
         SDL_RenderClear(sdl_renderer);
 
-        renderer.draw_edges(nodes, lanes, camera);
-        renderer.draw_junctions(nodes, lanes, junctions_for_render, camera);
-        renderer.draw_vehicles(snapshot.vehicles, nodes, lanes, camera);
+        renderer.draw_edges(nodes, edges, camera);
+        renderer.draw_junctions(nodes, edges, junctions_for_render, camera);
+        renderer.draw_vehicles(snapshot.vehicles, nodes, edges, camera);
 
         ImGui::Render();
         ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), sdl_renderer);

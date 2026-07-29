@@ -39,7 +39,7 @@ struct CrossroadsFixture {
     Edge south_in{.id = EdgeId{5}, .from = NodeId{6}, .to = NodeId{0}, .length = 50.f};
 
     [[nodiscard]]
-    std::vector<Edge> all_lanes() const
+    std::vector<Edge> all_edges() const
     {
         return {east_in, north_in, east_out, north_out, west_in, south_in};
     }
@@ -53,7 +53,7 @@ struct CrossroadsFixture {
     [[nodiscard]]
     RoadGraph build_graph() const
     {
-        return RoadGraph{all_nodes(), all_lanes()};
+        return RoadGraph{all_nodes(), all_edges()};
     }
 };
 
@@ -69,8 +69,8 @@ TEST(TrafficLightControl, RespectsCurrentPhase)
 {
     TrafficLightControl light;
     light.phases = {
-        {.green_lanes = {EdgeId{0}}, .duration = 10.f},
-        {.green_lanes = {EdgeId{1}}, .duration = 10.f},
+        {.green_edges = {EdgeId{0}}, .duration = 10.f},
+        {.green_edges = {EdgeId{1}}, .duration = 10.f},
     };
 
     EXPECT_TRUE(light.is_green(EdgeId{0}));
@@ -83,8 +83,8 @@ TEST(TrafficLightControl, AdvanceSignalsCyclesPhases)
     j.node_id = NodeId{0};
     j.incoming = {EdgeId{0}, EdgeId{1}};
     j.control = TrafficLightControl{.phases = {
-                                        {.green_lanes = {EdgeId{0}}, .duration = 10.f},
-                                        {.green_lanes = {EdgeId{1}}, .duration = 10.f},
+                                        {.green_edges = {EdgeId{0}}, .duration = 10.f},
+                                        {.green_edges = {EdgeId{1}}, .duration = 10.f},
                                     }};
 
     JunctionMap map;
@@ -235,8 +235,8 @@ TEST(FindJunctionYield, RedLightForcesStop)
     Junction j{.node_id = NodeId{0},
                .incoming = {EdgeId{0}, EdgeId{1}},
                .control = TrafficLightControl{.phases = {
-                                                  {.green_lanes = {EdgeId{0}}, .duration = 10.f},
-                                                  {.green_lanes = {EdgeId{1}}, .duration = 10.f},
+                                                  {.green_edges = {EdgeId{0}}, .duration = 10.f},
+                                                  {.green_edges = {EdgeId{1}}, .duration = 10.f},
                                               }}};
     JunctionMap map;
     auto graph = f.build_graph();
@@ -254,8 +254,8 @@ TEST(FindJunctionYield, GreenLightProceeds)
     Junction j{.node_id = NodeId{0},
                .incoming = {EdgeId{0}, EdgeId{1}},
                .control = TrafficLightControl{.phases = {
-                                                  {.green_lanes = {EdgeId{0}}, .duration = 10.f},
-                                                  {.green_lanes = {EdgeId{1}}, .duration = 10.f},
+                                                  {.green_edges = {EdgeId{0}}, .duration = 10.f},
+                                                  {.green_edges = {EdgeId{1}}, .duration = 10.f},
                                               }}};
     JunctionMap map;
     auto graph = f.build_graph();
