@@ -33,14 +33,14 @@ public:
     // Advance the simulation by one step.
     void tick();
 
-    void set_map(std::vector<RoadNode> nodes, std::vector<Lane> lanes);
+    void set_map(std::vector<Node> nodes, std::vector<Edge> lanes);
 
     // TODO: resolve dependencies
     // 'set_junctions' requires set_map() to have been called first.
     // Junction geometry is resolved against the node/lane data.
     void set_junctions(std::vector<Junction> junctions);
 
-    [[nodiscard]] std::optional<std::vector<LaneId>> compute_route(NodeId src, NodeId dst) const;
+    [[nodiscard]] std::optional<std::vector<EdgeId>> compute_route(NodeId src, NodeId dst) const;
 
     [[nodiscard]] std::vector<Vehicle>& vehicles() & noexcept { return vehicles_; }
     [[nodiscard]] const std::vector<Vehicle>& vehicles() const& noexcept { return vehicles_; }
@@ -49,14 +49,14 @@ public:
     TripleBuffer<WorldSnapshot>& world_buffer() & noexcept { return world_buffer_; }
 
 private:
-    [[nodiscard]] const Lane* find_lane(LaneId id) const;
+    [[nodiscard]] const Edge* find_lane(EdgeId id) const;
 
     SimConfig config_;
     std::vector<Vehicle> vehicles_;
 
     // TODO: do we need lanes_/nodes_ or it can be fully replaced by graph_?
-    std::vector<Lane> lanes_;
-    std::vector<RoadNode> nodes_;
+    std::vector<Edge> lanes_;
+    std::vector<Node> nodes_;
     RoadGraph graph_;
     JunctionMap junctions_;
 

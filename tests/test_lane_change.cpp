@@ -10,9 +10,9 @@ using namespace ts;
 TEST(LaneChange, SwitchesAwayFromSlowBlockerWhenAdjacentLaneIsFree)
 {
     SimEngine engine;
-    std::vector<RoadNode> nodes{};
-    std::vector<Lane> lanes{
-        {.id = LaneId{0}, .from = NodeId{0}, .to = NodeId{1}, .length = 500.f, .speed_limit = 20.f, .num_sublanes = 2}};
+    std::vector<Node> nodes{};
+    std::vector<Edge> lanes{
+        {.id = EdgeId{0}, .from = NodeId{0}, .to = NodeId{1}, .length = 500.f, .speed_limit = 20.f, .lane_count = 2}};
     engine.set_map(nodes, lanes);
     std::uint8_t initial_sublane_idx = 0;
 
@@ -20,7 +20,7 @@ TEST(LaneChange, SwitchesAwayFromSlowBlockerWhenAdjacentLaneIsFree)
                   .type = VehicleType::Truck,
                   .idm_params = default_params(VehicleType::Truck),
                   .speed = 5.f,
-                  .lane_id = LaneId{0},
+                  .lane_id = EdgeId{0},
                   .offset = 60.f,
                   .sublane_idx = initial_sublane_idx};
     truck.idm_params.desired_speed = 5.f;  // prevent acceleration
@@ -28,7 +28,7 @@ TEST(LaneChange, SwitchesAwayFromSlowBlockerWhenAdjacentLaneIsFree)
     Vehicle car{.id = VehicleId{1},
                 .idm_params = default_params(VehicleType::Car),
                 .speed = 15.f,
-                .lane_id = LaneId{0},
+                .lane_id = EdgeId{0},
                 .offset = 0.f,
                 .sublane_idx = initial_sublane_idx};
 
@@ -49,16 +49,16 @@ TEST(LaneChange, SwitchesAwayFromSlowBlockerWhenAdjacentLaneIsFree)
 TEST(LaneChange, NeverSwitchesOnASingleLaneRoad)
 {
     SimEngine engine;
-    std::vector<RoadNode> nodes{};
-    std::vector<Lane> lanes{
-        {.id = LaneId{0}, .from = NodeId{0}, .to = NodeId{1}, .length = 500.f, .speed_limit = 20.f, .num_sublanes = 1}};
+    std::vector<Node> nodes{};
+    std::vector<Edge> lanes{
+        {.id = EdgeId{0}, .from = NodeId{0}, .to = NodeId{1}, .length = 500.f, .speed_limit = 20.f, .lane_count = 1}};
     engine.set_map(nodes, lanes);
     std::uint8_t initial_sublane_idx = 0;
 
     Vehicle v{.id = VehicleId{0},
               .idm_params = default_params(VehicleType::Car),
               .speed = 10.f,
-              .lane_id = LaneId{0},
+              .lane_id = EdgeId{0},
               .offset = 0.f,
               .sublane_idx = initial_sublane_idx};
 
@@ -73,9 +73,9 @@ TEST(LaneChange, NeverSwitchesOnASingleLaneRoad)
 TEST(LaneChange, StaysPutWhenThereIsNothingToGain)
 {
     SimEngine engine;
-    std::vector<RoadNode> nodes{};
-    std::vector<Lane> lanes{
-        {.id = LaneId{0}, .from = NodeId{0}, .to = NodeId{1}, .length = 500.f, .speed_limit = 20.f, .num_sublanes = 2}};
+    std::vector<Node> nodes{};
+    std::vector<Edge> lanes{
+        {.id = EdgeId{0}, .from = NodeId{0}, .to = NodeId{1}, .length = 500.f, .speed_limit = 20.f, .lane_count = 2}};
     engine.set_map(nodes, lanes);
 
     std::uint8_t initial_sublane_idx = 0;
@@ -83,7 +83,7 @@ TEST(LaneChange, StaysPutWhenThereIsNothingToGain)
     Vehicle v{.id = VehicleId{0},
               .idm_params = default_params(VehicleType::Car),
               .speed = 10.f,
-              .lane_id = LaneId{0},
+              .lane_id = EdgeId{0},
               .offset = 0.f,
               .sublane_idx = initial_sublane_idx};
 
@@ -101,15 +101,15 @@ TEST(LaneChange, SafetyCriterionBlocksDangerousMerge)
     // merge point, should prevent the switch even though the slow blocker
     // ahead would otherwise make it attractive.
     SimEngine engine;
-    std::vector<RoadNode> nodes{};
-    std::vector<Lane> lanes{
-        {.id = LaneId{0}, .from = NodeId{0}, .to = NodeId{1}, .length = 500.f, .speed_limit = 30.f, .num_sublanes = 2}};
+    std::vector<Node> nodes{};
+    std::vector<Edge> lanes{
+        {.id = EdgeId{0}, .from = NodeId{0}, .to = NodeId{1}, .length = 500.f, .speed_limit = 30.f, .lane_count = 2}};
     engine.set_map(nodes, lanes);
 
     Vehicle slow_blocker{.id = VehicleId{0},
                          .idm_params = default_params(VehicleType::Car),
                          .speed = 5.f,
-                         .lane_id = LaneId{0},
+                         .lane_id = EdgeId{0},
                          .offset = 20.f,
                          .sublane_idx = 0};
     slow_blocker.idm_params.desired_speed = 5.f;
@@ -117,14 +117,14 @@ TEST(LaneChange, SafetyCriterionBlocksDangerousMerge)
     Vehicle ego{.id = VehicleId{1},
                 .idm_params = default_params(VehicleType::Car),
                 .speed = 15.f,
-                .lane_id = LaneId{0},
+                .lane_id = EdgeId{0},
                 .offset = 0.f,
                 .sublane_idx = 0};
 
     Vehicle fast_approacher{.id = VehicleId{2},
                             .idm_params = default_params(VehicleType::Car),
                             .speed = 30.f,  // closing in fast
-                            .lane_id = LaneId{0},
+                            .lane_id = EdgeId{0},
                             .offset = -0.5f,  // right beside ego's merge point
                             .sublane_idx = 1};
     fast_approacher.idm_params.desired_speed = 30.f;

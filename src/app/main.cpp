@@ -69,26 +69,26 @@ constexpr ts::NodeId kNodeS3{10};
 
 // Lane ids, grouped by road segment. Every road is two one-way lanes
 // (a proper pair), not a single bidirectional one.
-constexpr ts::LaneId kLaneW0_J1{0};
-constexpr ts::LaneId kLaneJ1_J2{1};
-constexpr ts::LaneId kLaneJ2_J3{2};
-constexpr ts::LaneId kLaneJ3_E0{3};
-constexpr ts::LaneId kLaneE0_J3{4};
-constexpr ts::LaneId kLaneJ3_J2{5};
-constexpr ts::LaneId kLaneJ2_J1{6};
-constexpr ts::LaneId kLaneJ1_W0{7};
-constexpr ts::LaneId kLaneN1_J1{8};
-constexpr ts::LaneId kLaneJ1_S1{9};
-constexpr ts::LaneId kLaneS1_J1{10};
-constexpr ts::LaneId kLaneJ1_N1{11};
-constexpr ts::LaneId kLaneN2_J2{12};
-constexpr ts::LaneId kLaneJ2_S2{13};
-constexpr ts::LaneId kLaneS2_J2{14};
-constexpr ts::LaneId kLaneJ2_N2{15};
-constexpr ts::LaneId kLaneN3_J3{16};
-constexpr ts::LaneId kLaneJ3_S3{17};
-constexpr ts::LaneId kLaneS3_J3{18};
-constexpr ts::LaneId kLaneJ3_N3{19};
+constexpr ts::EdgeId kLaneW0_J1{0};
+constexpr ts::EdgeId kLaneJ1_J2{1};
+constexpr ts::EdgeId kLaneJ2_J3{2};
+constexpr ts::EdgeId kLaneJ3_E0{3};
+constexpr ts::EdgeId kLaneE0_J3{4};
+constexpr ts::EdgeId kLaneJ3_J2{5};
+constexpr ts::EdgeId kLaneJ2_J1{6};
+constexpr ts::EdgeId kLaneJ1_W0{7};
+constexpr ts::EdgeId kLaneN1_J1{8};
+constexpr ts::EdgeId kLaneJ1_S1{9};
+constexpr ts::EdgeId kLaneS1_J1{10};
+constexpr ts::EdgeId kLaneJ1_N1{11};
+constexpr ts::EdgeId kLaneN2_J2{12};
+constexpr ts::EdgeId kLaneJ2_S2{13};
+constexpr ts::EdgeId kLaneS2_J2{14};
+constexpr ts::EdgeId kLaneJ2_N2{15};
+constexpr ts::EdgeId kLaneN3_J3{16};
+constexpr ts::EdgeId kLaneJ3_S3{17};
+constexpr ts::EdgeId kLaneS3_J3{18};
+constexpr ts::EdgeId kLaneJ3_N3{19};
 
 //                         N1              N2              N3
 //                         |               |               |
@@ -107,7 +107,7 @@ constexpr ts::LaneId kLaneJ3_N3{19};
 //
 // Every road is a pair of one-way lanes, so this is real two-way traffic,
 // not a single lane pretending to be bidirectional.
-std::vector<ts::RoadNode> make_demo_nodes()
+std::vector<ts::Node> make_demo_nodes()
 {
     return {
         {.id = kNodeW0, .pos = {.x = -150.f, .y = 300.f}}, {.id = kNodeJ1, .pos = {.x = 0.f, .y = 300.f}},
@@ -119,61 +119,21 @@ std::vector<ts::RoadNode> make_demo_nodes()
     };
 }
 
-std::vector<ts::Lane> make_demo_lanes()
+std::vector<ts::Edge> make_demo_lanes()
 {
     constexpr float kMainSpeed = 30.f;
     constexpr float kCrossSpeed = 20.f;
 
     return {
         // Main road, both directions, straight through J1/J2/J3.
-        {.id = kLaneW0_J1,
-         .from = kNodeW0,
-         .to = kNodeJ1,
-         .length = 150.f,
-         .speed_limit = kMainSpeed,
-         .num_sublanes = 2},
-        {.id = kLaneJ1_J2,
-         .from = kNodeJ1,
-         .to = kNodeJ2,
-         .length = 300.f,
-         .speed_limit = kMainSpeed,
-         .num_sublanes = 2},
-        {.id = kLaneJ2_J3,
-         .from = kNodeJ2,
-         .to = kNodeJ3,
-         .length = 300.f,
-         .speed_limit = kMainSpeed,
-         .num_sublanes = 2},
-        {.id = kLaneJ3_E0,
-         .from = kNodeJ3,
-         .to = kNodeE0,
-         .length = 150.f,
-         .speed_limit = kMainSpeed,
-         .num_sublanes = 2},
-        {.id = kLaneE0_J3,
-         .from = kNodeE0,
-         .to = kNodeJ3,
-         .length = 150.f,
-         .speed_limit = kMainSpeed,
-         .num_sublanes = 2},
-        {.id = kLaneJ3_J2,
-         .from = kNodeJ3,
-         .to = kNodeJ2,
-         .length = 300.f,
-         .speed_limit = kMainSpeed,
-         .num_sublanes = 2},
-        {.id = kLaneJ2_J1,
-         .from = kNodeJ2,
-         .to = kNodeJ1,
-         .length = 300.f,
-         .speed_limit = kMainSpeed,
-         .num_sublanes = 2},
-        {.id = kLaneJ1_W0,
-         .from = kNodeJ1,
-         .to = kNodeW0,
-         .length = 150.f,
-         .speed_limit = kMainSpeed,
-         .num_sublanes = 2},
+        {.id = kLaneW0_J1, .from = kNodeW0, .to = kNodeJ1, .length = 150.f, .speed_limit = kMainSpeed, .lane_count = 2},
+        {.id = kLaneJ1_J2, .from = kNodeJ1, .to = kNodeJ2, .length = 300.f, .speed_limit = kMainSpeed, .lane_count = 2},
+        {.id = kLaneJ2_J3, .from = kNodeJ2, .to = kNodeJ3, .length = 300.f, .speed_limit = kMainSpeed, .lane_count = 2},
+        {.id = kLaneJ3_E0, .from = kNodeJ3, .to = kNodeE0, .length = 150.f, .speed_limit = kMainSpeed, .lane_count = 2},
+        {.id = kLaneE0_J3, .from = kNodeE0, .to = kNodeJ3, .length = 150.f, .speed_limit = kMainSpeed, .lane_count = 2},
+        {.id = kLaneJ3_J2, .from = kNodeJ3, .to = kNodeJ2, .length = 300.f, .speed_limit = kMainSpeed, .lane_count = 2},
+        {.id = kLaneJ2_J1, .from = kNodeJ2, .to = kNodeJ1, .length = 300.f, .speed_limit = kMainSpeed, .lane_count = 2},
+        {.id = kLaneJ1_W0, .from = kNodeJ1, .to = kNodeW0, .length = 150.f, .speed_limit = kMainSpeed, .lane_count = 2},
 
         // Cross street at J1 -- unregulated.
         {.id = kLaneN1_J1, .from = kNodeN1, .to = kNodeJ1, .length = 180.f, .speed_limit = kCrossSpeed},
@@ -306,8 +266,8 @@ int main(int /*argc*/, char** /*argv*/)
     ImGui::StyleColorsDark();
 
     // --- demo scene setup ---
-    std::vector<ts::RoadNode> nodes = make_demo_nodes();
-    std::vector<ts::Lane> lanes = make_demo_lanes();
+    std::vector<ts::Node> nodes = make_demo_nodes();
+    std::vector<ts::Edge> lanes = make_demo_lanes();
     std::vector<ts::Junction> junctions = make_demo_junctions();
     const std::size_t junction_count = junctions.size();
     const std::vector<ts::Junction> junctions_for_render = junctions;

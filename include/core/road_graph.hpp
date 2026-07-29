@@ -14,53 +14,52 @@
 
 namespace ts {
 
-// Junction point
-struct RoadNode {
+struct Node {
     NodeId id{kInvalidNode};
     Vec2D pos{};   // TODO: maybe separate Point2D class?
     float z{0.f};  // elevation
 };
 
-// A directed road segment connecting two RoadNodes.
-struct Lane {
-    LaneId id{kInvalidLane};
+// A directed road segment connecting two Nodes.
+struct Edge {
+    EdgeId id{kInvalidLane};
 
     NodeId from{kInvalidNode};
     NodeId to{kInvalidNode};
 
-    float length{0.f};             // metres
-    float speed_limit{16.7f};      // m/s, default ~60 km/h
-    std::uint8_t num_sublanes{1};  // parallel lanes in one direction
+    float length{0.f};           // metres
+    float speed_limit{16.7f};    // m/s, default ~60 km/h
+    std::uint8_t lane_count{1};  // parallel lanes in one direction
 };
 
 // Adjacency list over Lane objects.
 // A* pathfinding.
-// Keeps its own copies of Lane/RoadNode data
+// Keeps its own copies of Lane/Node data
 class RoadGraph {
     // TODO: rebuild or construct?
 public:
-    void rebuild(std::span<const RoadNode> nodes, std::span<const Lane> lanes);
+    void rebuild(std::span<const Node> nodes, std::span<const Edge> lanes);
 
     // All lanes leaving a given node.
     // WARNING: the returned span dangles after the next rebuild()
-    [[nodiscard]] std::span<const LaneId> outgoing_lanes(NodeId node) const;
+    [[nodiscard]] std::span<const EdgeId> outgoing_lanes(NodeId node) const;
 
     // The node a lane leads into.
-    [[nodiscard]] NodeId destination_node(LaneId lane) const;
+    [[nodiscard]] NodeId destination_node(EdgeId lane) const;
 
     // Shortest path (by travel time = length / speed_limit) from src to dst,
     // Return value:
     //  Sequence of lane ids;
     //  Empty vector means src == dst;
     //  nullopt means dst is unreachable from src.
-    [[nodiscard]] std::optional<std::vector<LaneId>> find_route(NodeId src_id, NodeId dst_id) const;
+    [[nodiscard]] std::optional<std::vector<EdgeId>> find_route(NodeId src_id, NodeId dst_id) const;
 
 private:
     // TODO: try another containers later
-    std::unordered_map<NodeId, std::vector<LaneId>> adjacency_;  // All Lanes 'growing' from the node
-    std::unordered_map<LaneId, NodeId> lane_dest_;               // Lane destination
-    std::unordered_map<LaneId, Lane> lanes_by_id_;
-    std::unordered_map<NodeId, RoadNode> nodes_by_id_;
+    std::unordered_map<NodeId, std::vector<EdgeId>> adjacency_;  // All Lanes 'growing' from the node
+    std::unordered_map<EdgeId, NodeId> lane_dest_;               // Lane destination
+    std::unordered_map<EdgeId, Edge> lanes_by_id_;
+    std::unordered_map<NodeId, Node> nodes_by_id_;
 };
 
 }  // namespace ts

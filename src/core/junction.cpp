@@ -10,7 +10,7 @@
 
 namespace ts {
 
-bool TrafficLightControl::is_green(LaneId lane) const
+bool TrafficLightControl::is_green(EdgeId lane) const
 {
     if (phases.empty()) return true;
 
@@ -20,21 +20,21 @@ bool TrafficLightControl::is_green(LaneId lane) const
 
 namespace {
 
-const RoadNode* find_node(NodeId id, std::span<const RoadNode> nodes)
+const Node* find_node(NodeId id, std::span<const Node> nodes)
 {
-    auto it = std::ranges::find(nodes, id, &RoadNode::id);
+    auto it = std::ranges::find(nodes, id, &Node::id);
     return (it != nodes.end()) ? &*it : nullptr;
 }
 
-const Lane* find_lane(LaneId id, std::span<const Lane> lanes)
+const Edge* find_lane(EdgeId id, std::span<const Edge> lanes)
 {
-    auto it = std::ranges::find(lanes, id, &Lane::id);
+    auto it = std::ranges::find(lanes, id, &Edge::id);
     return (it != lanes.end()) ? &*it : nullptr;
 }
 
 }  // namespace
 
-void JunctionMap::rebuild(std::vector<Junction> junctions, std::span<const RoadNode> nodes, std::span<const Lane> lanes)
+void JunctionMap::rebuild(std::vector<Junction> junctions, std::span<const Node> nodes, std::span<const Edge> lanes)
 {
     junctions_ = std::move(junctions);
     index_by_node_.clear();
@@ -44,7 +44,7 @@ void JunctionMap::rebuild(std::vector<Junction> junctions, std::span<const RoadN
         Junction& junction = junctions_[i];
         index_by_node_[junction.node_id] = i;
 
-        if (const RoadNode* node = find_node(junction.node_id, nodes)) {
+        if (const Node* node = find_node(junction.node_id, nodes)) {
             junction.pos = node->pos;
         }
         else {
@@ -52,11 +52,11 @@ void JunctionMap::rebuild(std::vector<Junction> junctions, std::span<const RoadN
         }
 
         junction.lines_from.clear();
-        for (LaneId lane_id : junction.incoming) {
+        for (EdgeId lane_id : junction.incoming) {
             index_by_lane_[lane_id] = i;
 
-            const Lane* lane = find_lane(lane_id, lanes);
-            const RoadNode* from_node = lane ? find_node(lane->from, nodes) : nullptr;
+            const Edge* lane = find_lane(lane_id, lanes);
+            const Node* from_node = lane ? find_node(lane->from, nodes) : nullptr;
             if (from_node) {
                 junction.lines_from[lane_id] = from_node->pos;
             }
@@ -76,7 +76,7 @@ const Junction* JunctionMap::find_by_node(NodeId node) const
     return &junctions_[it->second];
 }
 
-const Junction* JunctionMap::find_by_lane(LaneId incoming_lane) const
+const Junction* JunctionMap::find_by_lane(EdgeId incoming_lane) const
 {
     auto it = index_by_lane_.find(incoming_lane);
     if (it == index_by_lane_.end()) return nullptr;
@@ -113,19 +113,19 @@ constexpr float kCriticalGapS = 4.f;      // s   - minimum accepted gap in highe
 // Check if someone is just behind the crossroad/junction
 // We don't track turn-specific paths through the node yet
 bool junction_is_occupied(NodeId node_id, VehicleId ego_id, std::span<const Vehicle> all_vehicles,
-                          std::span<const Lane> all_lanes)
+                          std::span<const Edge> all_lanes)
 {
     return std::ranges::any_of(all_vehicles, [&](const Vehicle& other) {
         if (other.id == ego_id) return false;
 
-        return std::ranges::any_of(all_lanes, [&](const Lane& l) {
+        return std::ranges::any_of(all_lanes, [&](const Edge& l) {
             return (l.id == other.lane_id && l.from == node_id && other.offset < kClearanceWindow);
         });
     });
 }
 
 // Check if someone is on 'rival_lane' and close enough
-bool someone_is_approaching(const Lane& rival_lane, std::span<const Vehicle> all_vehicles)
+bool someone_is_approaching(const Edge& rival_lane, std::span<const Vehicle> all_vehicles)
 {
     for (const auto& other : all_vehicles) {
         if (other.lane_id != rival_lane.id) continue;
@@ -146,8 +146,8 @@ bool someone_is_approaching(const Lane& rival_lane, std::span<const Vehicle> all
 // Box rule + gap acceptance against an explicit set of rival lanes, shared
 // by PriorityControl (rivals from the sign) and UnregulatedControl
 // (rivals worked out from geometry).
-bool yields_to_rivals(const Junction& junction, VehicleId ego_id, std::span<const LaneId> rival_lanes,
-                      std::span<const Vehicle> all_vehicles, std::span<const Lane> all_lanes)
+bool yields_to_rivals(const Junction& junction, VehicleId ego_id, std::span<const EdgeId> rival_lanes,
+                      std::span<const Vehicle> all_vehicles, std::span<const Edge> all_lanes)
 {
     if (rival_lanes.empty()) {
         return false;
@@ -157,8 +157,8 @@ bool yields_to_rivals(const Junction& junction, VehicleId ego_id, std::span<cons
         return true;
     }
 
-    for (LaneId rival_id : rival_lanes) {
-        auto rival_lane_it = std::ranges::find(all_lanes, rival_id, &Lane::id);
+    for (EdgeId rival_id : rival_lanes) {
+        auto rival_lane_it = std::ranges::find(all_lanes, rival_id, &Edge::id);
         if (rival_lane_it == all_lanes.end()) continue;
 
         if (someone_is_approaching(*rival_lane_it, all_vehicles)) {
@@ -181,16 +181,16 @@ bool approaches_from_the_right(Vec2D junction_pos, Vec2D ego_from, Vec2D rival_f
 }
 
 // Uses cached geometry of lanes.
-std::vector<LaneId> right_hand_rivals(const Junction& junction, const Lane& ego_lane)
+std::vector<EdgeId> right_hand_rivals(const Junction& junction, const Edge& ego_lane)
 {
-    std::vector<LaneId> rivals;
+    std::vector<EdgeId> rivals;
 
     auto ego_from_it = junction.lines_from.find(ego_lane.id);
     if (ego_from_it == junction.lines_from.end()) {
         return rivals;  // no cached geometry for this approach, nobody to yield to
     }
 
-    for (LaneId other_id : junction.incoming) {
+    for (EdgeId other_id : junction.incoming) {
         if (other_id == ego_lane.id) continue;
 
         auto rival_from_it = junction.lines_from.find(other_id);
@@ -211,8 +211,8 @@ struct overloaded : Ts... {
 
 }  // namespace
 
-std::optional<idm::LeaderInfo> leader_to_yield(const Vehicle& ego, const Lane& ego_lane, const JunctionMap& junctions,
-                                               std::span<const Vehicle> all_vehicles, std::span<const Lane> all_lanes)
+std::optional<idm::LeaderInfo> leader_to_yield(const Vehicle& ego, const Edge& ego_lane, const JunctionMap& junctions,
+                                               std::span<const Vehicle> all_vehicles, std::span<const Edge> all_lanes)
 {
     float distance_to_stop = ego_lane.length - ego.offset;
     if (distance_to_stop < 0.f) return std::nullopt;              // already past the line

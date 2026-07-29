@@ -29,7 +29,7 @@ struct Vehicle {
 
     // TODO: Do ew need a separate lane_id?
     // We should always have a route(even while parking)
-    LaneId lane_id{};  // Which road segment the vehicle is on.
+    EdgeId lane_id{};  // Which road segment the vehicle is on.
 
     // How far are we from the lane's start.
     float offset{0.f};  // m
@@ -44,7 +44,7 @@ struct Vehicle {
 
     // Sequence of lanes to follow
     // route[route_idx] must always equal lane_id (kept in sync by tick()).
-    std::vector<LaneId> route{};
+    std::vector<EdgeId> route{};
     std::size_t route_idx{0};
 };
 

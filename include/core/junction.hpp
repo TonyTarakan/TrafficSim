@@ -23,12 +23,12 @@ struct UnregulatedControl {
 
 // Sign-based priority.
 struct PriorityControl {
-    std::unordered_map<LaneId, std::vector<LaneId>> yields_to;  // Lane yields to others
+    std::unordered_map<EdgeId, std::vector<EdgeId>> yields_to;  // Lane yields to others
 };
 
 // Only one lane has green light for duration seconds
 struct SignalPhase {
-    std::vector<LaneId> green_lanes;
+    std::vector<EdgeId> green_lanes;
     float duration{30.f};  // seconds
 };
 
@@ -40,19 +40,19 @@ struct TrafficLightControl {
 
     // No phases configured => treat as always-green
     // TODO: add support for flashing yellow (unregulated/priority fallback)
-    [[nodiscard]] bool is_green(LaneId lane) const;
+    [[nodiscard]] bool is_green(EdgeId lane) const;
 };
 
 using JunctionControl = std::variant<UnregulatedControl, PriorityControl, TrafficLightControl>;
 
 struct Junction {
     NodeId node_id{kInvalidNode};
-    std::vector<LaneId> incoming;
+    std::vector<EdgeId> incoming;
     JunctionControl control{UnregulatedControl{}};
 
     // Geometry cache, filled in by JunctionMap::rebuild()
     Vec2D pos{};
-    std::unordered_map<LaneId, Vec2D> lines_from{};
+    std::unordered_map<EdgeId, Vec2D> lines_from{};
 };
 
 // Registry of all junctions on the current map.
@@ -60,10 +60,10 @@ class JunctionMap {
 public:
     // 'nodes'/'lanes' are the same map data passed to RoadGraph::rebuild();
     // used once here to resolve each junction, not stored afterwards.
-    void rebuild(std::vector<Junction> junctions, std::span<const RoadNode> nodes, std::span<const Lane> lanes);
+    void rebuild(std::vector<Junction> junctions, std::span<const Node> nodes, std::span<const Edge> lanes);
 
     [[nodiscard]] const Junction* find_by_node(NodeId node_id) const;
-    [[nodiscard]] const Junction* find_by_lane(LaneId incoming_lane_id) const;
+    [[nodiscard]] const Junction* find_by_lane(EdgeId incoming_lane_id) const;
 
     // Advance every tick by dt seconds.
     void advance_signals(float dt);
@@ -73,7 +73,7 @@ public:
 private:
     std::vector<Junction> junctions_;
     std::unordered_map<NodeId, std::size_t> index_by_node_;
-    std::unordered_map<LaneId, std::size_t> index_by_lane_;
+    std::unordered_map<EdgeId, std::size_t> index_by_lane_;
 };
 
 // 'Ego' looks at the upcoming junction
@@ -81,7 +81,7 @@ private:
 // So IDM brakes for it exactly as if it were a stopped leader.
 // nullopt means the way is free.
 [[nodiscard]]
-std::optional<idm::LeaderInfo> leader_to_yield(const Vehicle& ego, const Lane& ego_lane, const JunctionMap& junctions,
-                                               std::span<const Vehicle> all_vehicles, std::span<const Lane> all_lanes);
+std::optional<idm::LeaderInfo> leader_to_yield(const Vehicle& ego, const Edge& ego_lane, const JunctionMap& junctions,
+                                               std::span<const Vehicle> all_vehicles, std::span<const Edge> all_lanes);
 
 }  // namespace ts

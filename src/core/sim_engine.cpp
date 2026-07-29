@@ -43,7 +43,7 @@ std::optional<idm::LeaderInfo> find_leader(const Vehicle& ego, std::span<const V
 
 SimEngine::SimEngine(SimConfig config) : config_(config), pool_(config.num_threads) {}
 
-void SimEngine::set_map(std::vector<RoadNode> nodes, std::vector<Lane> lanes)
+void SimEngine::set_map(std::vector<Node> nodes, std::vector<Edge> lanes)
 {
     LOG_INFO(log::get(), "map loaded: {} nodes, {} lanes", nodes.size(), lanes.size());
     graph_.rebuild(nodes, lanes);
@@ -57,14 +57,14 @@ void SimEngine::set_junctions(std::vector<Junction> junctions)
     junctions_.rebuild(std::move(junctions), nodes_, lanes_);
 }
 
-std::optional<std::vector<LaneId>> SimEngine::compute_route(NodeId src, NodeId dst) const
+std::optional<std::vector<EdgeId>> SimEngine::compute_route(NodeId src, NodeId dst) const
 {
     return graph_.find_route(src, dst);
 }
 
-const Lane* SimEngine::find_lane(LaneId id) const
+const Edge* SimEngine::find_lane(EdgeId id) const
 {
-    auto it = std::ranges::find_if(lanes_, [&](const Lane& l) { return l.id == id; });
+    auto it = std::ranges::find_if(lanes_, [&](const Edge& l) { return l.id == id; });
     return (it != lanes_.end()) ? &*it : nullptr;
 }
 
@@ -101,8 +101,8 @@ void SimEngine::tick()
                 if (vehicles_[i].lane_change_cooldown > 0.f) {
                     continue;  // still cooling down from a recent switch — skip decide()
                 }
-                const Lane* lane = find_lane(vehicles_[i].lane_id);
-                std::uint8_t num_sublanes = lane ? lane->num_sublanes : 1;
+                const Edge* lane = find_lane(vehicles_[i].lane_id);
+                std::uint8_t num_sublanes = lane ? lane->lane_count : 1;
                 sublane_deltas[i] = decide(vehicles_[i], vehicles_, num_sublanes);
             }
         },
@@ -144,7 +144,7 @@ void SimEngine::tick()
     pool_.parallel_for(
         [&](std::size_t begin, std::size_t end) {
             for (std::size_t i = begin; i < end; ++i) {
-                const Lane* cur_lane = find_lane(vehicles_[i].lane_id);
+                const Edge* cur_lane = find_lane(vehicles_[i].lane_id);
                 if (cur_lane) {  // TODO: is it OK when the vehicle is out of lane?
                     junction_leaders[i] = leader_to_yield(vehicles_[i], *cur_lane, junctions_, vehicles_, lanes_);
                 }
@@ -187,7 +187,7 @@ void SimEngine::tick()
         [&](std::size_t begin, std::size_t end) {
             for (std::size_t i = begin; i < end; ++i) {
                 Vehicle& v = vehicles_[i];
-                const Lane* cur_lane = find_lane(v.lane_id);
+                const Edge* cur_lane = find_lane(v.lane_id);
                 if (!cur_lane || v.offset <= cur_lane->length) {
                     continue;  // still within the current lane, nothing to do
                 }
@@ -212,8 +212,8 @@ void SimEngine::tick()
                 // not a negotiated one -- MOBIL doesn't yet look ahead to an
                 // upcoming lane-count reduction, so vehicles don't proactively
                 // merge early. That's a natural follow-up, not this step.
-                const Lane* new_lane = find_lane(v.lane_id);
-                int max_sublane = new_lane ? static_cast<int>(new_lane->num_sublanes) - 1 : 0;
+                const Edge* new_lane = find_lane(v.lane_id);
+                int max_sublane = new_lane ? static_cast<int>(new_lane->lane_count) - 1 : 0;
                 if (v.sublane_idx > max_sublane) {
                     v.sublane_idx = max_sublane;
                 }

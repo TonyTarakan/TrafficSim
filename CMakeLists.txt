@@ -107,6 +107,7 @@ add_executable(tests
     tests/test_sim_engine.cpp
     tests/test_lane_change.cpp
     tests/test_lane_transition.cpp
+    tests/test_thread_pool.cpp
 )
 target_link_libraries(tests PRIVATE trafficsim_lib GTest::gtest_main)
 

@@ -8,7 +8,7 @@
 
 namespace ts {
 
-void RoadGraph::rebuild(std::span<const RoadNode> nodes, std::span<const Lane> lanes)
+void RoadGraph::rebuild(std::span<const Node> nodes, std::span<const Edge> lanes)
 {
     adjacency_.clear();
     lane_dest_.clear();
@@ -26,7 +26,7 @@ void RoadGraph::rebuild(std::span<const RoadNode> nodes, std::span<const Lane> l
     }
 }
 
-std::span<const LaneId> RoadGraph::outgoing_lanes(NodeId node) const
+std::span<const EdgeId> RoadGraph::outgoing_lanes(NodeId node) const
 {
     auto it = adjacency_.find(node);
     if (it == adjacency_.end()) {
@@ -35,7 +35,7 @@ std::span<const LaneId> RoadGraph::outgoing_lanes(NodeId node) const
     return it->second;
 }
 
-NodeId RoadGraph::destination_node(LaneId lane) const
+NodeId RoadGraph::destination_node(EdgeId lane) const
 {
     auto it = lane_dest_.find(lane);
     return (it != lane_dest_.end()) ? it->second : kInvalidNode;
@@ -50,10 +50,10 @@ NodeId RoadGraph::destination_node(LaneId lane) const
 // f = total cost to go (estimated)
 // f = g + h
 //
-std::optional<std::vector<LaneId>> RoadGraph::find_route(NodeId src_id, NodeId dst_id) const
+std::optional<std::vector<EdgeId>> RoadGraph::find_route(NodeId src_id, NodeId dst_id) const
 {
     if (src_id == dst_id) {
-        return std::vector<LaneId>{};
+        return std::vector<EdgeId>{};
     }
 
     // Heuristic cheapest possible cost
@@ -85,7 +85,7 @@ std::optional<std::vector<LaneId>> RoadGraph::find_route(NodeId src_id, NodeId d
     CostMinHeap frontier;
 
     std::unordered_map<NodeId, float> best_costs;
-    std::unordered_map<NodeId, LaneId> came_via;
+    std::unordered_map<NodeId, EdgeId> came_via;
     std::unordered_map<NodeId, NodeId> came_from;
 
     best_costs[src_id] = 0.f;
@@ -96,7 +96,7 @@ std::optional<std::vector<LaneId>> RoadGraph::find_route(NodeId src_id, NodeId d
         frontier.pop();
 
         if (curr_id == dst_id) {
-            std::vector<LaneId> path;
+            std::vector<EdgeId> path;
             NodeId node_id = dst_id;
             while (node_id != src_id) {
                 path.push_back(came_via.at(node_id));
@@ -115,13 +115,13 @@ std::optional<std::vector<LaneId>> RoadGraph::find_route(NodeId src_id, NodeId d
             continue;
         }
 
-        for (LaneId lane_id : outgoing_lanes(curr_id)) {
+        for (EdgeId lane_id : outgoing_lanes(curr_id)) {
             auto it = lanes_by_id_.find(lane_id);
             if (it == lanes_by_id_.end()) {
                 continue;
             }
 
-            const Lane& lane = it->second;
+            const Edge& lane = it->second;
             NodeId next_id = lane.to;
             constexpr float kMinSpeed = 0.1f;
             float edge_cost = lane.length / std::max(lane.speed_limit, kMinSpeed);
