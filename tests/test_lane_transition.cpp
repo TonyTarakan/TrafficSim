@@ -16,11 +16,11 @@ TEST(LaneTransition, VehicleAdvancesToNextLaneOnRoute)
         {.id = NodeId{1}, .pos = {.x = 100.f, .y = 0.f}},
         {.id = NodeId{2}, .pos = {.x = 200.f, .y = 0.f}},
     };
-    std::vector<Edge> lanes = {
+    std::vector<Edge> edges = {
         {.id = EdgeId{0}, .from = NodeId{0}, .to = NodeId{1}, .length = 100.f, .speed_limit = 20.f, .lane_count = 1},
         {.id = EdgeId{1}, .from = NodeId{1}, .to = NodeId{2}, .length = 100.f, .speed_limit = 20.f, .lane_count = 1},
     };
-    engine.set_map(nodes, lanes);
+    engine.set_map(nodes, edges);
 
     auto route = engine.compute_route(NodeId{0}, NodeId{2});
     ASSERT_TRUE(route.has_value());
@@ -57,11 +57,11 @@ TEST(LaneTransition, ForcedMergeClampsSublaneOnNarrowerLane)
         {.id = NodeId{1}, .pos = {.x = 100.f, .y = 0.f}},
         {.id = NodeId{2}, .pos = {.x = 200.f, .y = 0.f}},
     };
-    std::vector<Edge> lanes = {
+    std::vector<Edge> edges = {
         {.id = EdgeId{0}, .from = NodeId{0}, .to = NodeId{1}, .length = 100.f, .speed_limit = 20.f, .lane_count = 3},
         {.id = EdgeId{1}, .from = NodeId{1}, .to = NodeId{2}, .length = 100.f, .speed_limit = 20.f, .lane_count = 1},
     };
-    engine.set_map(nodes, lanes);
+    engine.set_map(nodes, edges);
 
     auto route = engine.compute_route(NodeId{0}, NodeId{2});
     ASSERT_TRUE(route.has_value());
@@ -100,12 +100,12 @@ TEST(LaneTransition, TwoStreamsBothReachSharedLane)
         {.id = NodeId{2}, .pos = {.x = 150.f, .y = 0.f}},
         {.id = NodeId{3}, .pos = {.x = 300.f, .y = 0.f}},
     };
-    std::vector<Edge> lanes = {
+    std::vector<Edge> edges = {
         {.id = EdgeId{0}, .from = NodeId{0}, .to = NodeId{2}, .length = 153.f, .speed_limit = 15.f, .lane_count = 2},
         {.id = EdgeId{1}, .from = NodeId{1}, .to = NodeId{2}, .length = 153.f, .speed_limit = 15.f, .lane_count = 2},
         {.id = EdgeId{2}, .from = NodeId{2}, .to = NodeId{3}, .length = 150.f, .speed_limit = 15.f, .lane_count = 2},
     };
-    engine.set_map(nodes, lanes);
+    engine.set_map(nodes, edges);
 
     auto route_a = engine.compute_route(NodeId{0}, NodeId{3});
     auto route_b = engine.compute_route(NodeId{1}, NodeId{3});

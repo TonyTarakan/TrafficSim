@@ -133,11 +133,11 @@ TEST(SimEngine, VehicleStopsAtRedLightJunction)
         {.id = NodeId{1}, .pos = {.x = 100.f, .y = 0.f}},  // junction node
         {.id = NodeId{2}, .pos = {.x = 200.f, .y = 0.f}},
     };
-    std::vector<Edge> lanes = {
+    std::vector<Edge> edges = {
         {.id = EdgeId{0}, .from = NodeId{0}, .to = NodeId{1}, .length = 100.f, .speed_limit = 20.f, .lane_count = 1},
         {.id = EdgeId{1}, .from = NodeId{1}, .to = NodeId{2}, .length = 100.f, .speed_limit = 20.f, .lane_count = 1},
     };
-    engine.set_map(nodes, lanes);
+    engine.set_map(nodes, edges);
 
     // Lane 0's phase never comes up -- an always-red light for this approach.
     Junction junction{.node_id = NodeId{1},
@@ -154,12 +154,12 @@ TEST(SimEngine, VehicleStopsAtRedLightJunction)
 
     for (int i = 0; i < 1000; ++i) {  // 20s at 50Hz -- plenty of time to reach and stop at the line
         engine.tick();
-        ASSERT_LE(engine.vehicles()[0].offset, lanes[0].length) << "vehicle ran the red light at tick " << i;
+        ASSERT_LE(engine.vehicles()[0].offset, edges[0].length) << "vehicle ran the red light at tick " << i;
     }
 
     EXPECT_NEAR(engine.vehicles()[0].speed, 0.f, 0.5f);
     const float expected_gap = default_params(VehicleType::Car).min_gap;
-    float actual_gap = lanes[0].length - engine.vehicles()[0].offset;
+    float actual_gap = edges[0].length - engine.vehicles()[0].offset;
     EXPECT_NEAR(actual_gap, expected_gap, 3.f);
 }
 
@@ -174,7 +174,7 @@ TEST(SimEngine, VehicleYieldsToPriorityCrossTraffic)
         {.id = NodeId{3}, .pos = {.x = 0.f, .y = 50.f}},   // main road start
         {.id = NodeId{4}, .pos = {.x = 0.f, .y = -50.f}},  // main road continues
     };
-    std::vector<Edge> lanes = {
+    std::vector<Edge> edges = {
         {.id = EdgeId{0},
          .from = NodeId{0},
          .to = NodeId{1},
@@ -200,7 +200,7 @@ TEST(SimEngine, VehicleYieldsToPriorityCrossTraffic)
          .speed_limit = 20.f,
          .lane_count = 1},  // main out
     };
-    engine.set_map(nodes, lanes);
+    engine.set_map(nodes, edges);
 
     Junction junction{
         .node_id = NodeId{1},

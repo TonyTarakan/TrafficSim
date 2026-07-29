@@ -12,10 +12,10 @@ TEST(LaneChange, SwitchesAwayFromSlowBlockerWhenAdjacentLaneIsFree)
     SimEngine engine;
     std::vector<Node> nodes = {{.id = NodeId{0}, .pos = {.x = 0.f, .y = 0.f}},
                                {.id = NodeId{1}, .pos = {.x = 500.f, .y = 0.f}}};
-    std::vector<Edge> lanes = {
+    std::vector<Edge> edges = {
         {.id = EdgeId{0}, .from = NodeId{0}, .to = NodeId{1}, .length = 500.f, .speed_limit = 20.f, .lane_count = 2}};
 
-    engine.set_map(nodes, lanes);
+    engine.set_map(nodes, edges);
     std::uint8_t initial_sublane_idx = 0;
 
     Vehicle truck{.id = VehicleId{0},
@@ -53,9 +53,9 @@ TEST(LaneChange, NeverSwitchesOnASingleLaneRoad)
     SimEngine engine;
     std::vector<Node> nodes = {{.id = NodeId{0}, .pos = {.x = 0.f, .y = 0.f}},
                                {.id = NodeId{1}, .pos = {.x = 500.f, .y = 0.f}}};
-    std::vector<Edge> lanes = {
+    std::vector<Edge> edges = {
         {.id = EdgeId{0}, .from = NodeId{0}, .to = NodeId{1}, .length = 500.f, .speed_limit = 20.f, .lane_count = 2}};
-    engine.set_map(nodes, lanes);
+    engine.set_map(nodes, edges);
     std::uint8_t initial_sublane_idx = 0;
 
     Vehicle v{.id = VehicleId{0},
@@ -78,9 +78,9 @@ TEST(LaneChange, StaysPutWhenThereIsNothingToGain)
     SimEngine engine;
     std::vector<Node> nodes = {{.id = NodeId{0}, .pos = {.x = 0.f, .y = 0.f}},
                                {.id = NodeId{1}, .pos = {.x = 500.f, .y = 0.f}}};
-    std::vector<Edge> lanes = {
+    std::vector<Edge> edges = {
         {.id = EdgeId{0}, .from = NodeId{0}, .to = NodeId{1}, .length = 500.f, .speed_limit = 20.f, .lane_count = 2}};
-    engine.set_map(nodes, lanes);
+    engine.set_map(nodes, edges);
 
     std::uint8_t initial_sublane_idx = 0;
 
@@ -107,9 +107,9 @@ TEST(LaneChange, SafetyCriterionBlocksDangerousMerge)
     SimEngine engine;
     std::vector<Node> nodes = {{.id = NodeId{0}, .pos = {.x = 0.f, .y = 0.f}},
                                {.id = NodeId{1}, .pos = {.x = 500.f, .y = 0.f}}};
-    std::vector<Edge> lanes = {
+    std::vector<Edge> edges = {
         {.id = EdgeId{0}, .from = NodeId{0}, .to = NodeId{1}, .length = 500.f, .speed_limit = 20.f, .lane_count = 2}};
-    engine.set_map(nodes, lanes);
+    engine.set_map(nodes, edges);
 
     Vehicle slow_blocker{.id = VehicleId{0},
                          .idm_params = default_params(VehicleType::Car),

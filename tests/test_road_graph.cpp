@@ -73,13 +73,13 @@ std::pair<std::vector<Node>, std::vector<Edge>> make_square()
         {.id = NodeId{2}, .pos = {.x = 100.f, .y = 100.f}},
         {.id = NodeId{3}, .pos = {.x = 0.f, .y = 100.f}},
     };
-    std::vector<Edge> lanes = {
+    std::vector<Edge> edges = {
         {.id = EdgeId{0}, .from = NodeId{0}, .to = NodeId{1}, .length = 100.f, .speed_limit = 13.9f, .lane_count = 1},
         {.id = EdgeId{1}, .from = NodeId{1}, .to = NodeId{2}, .length = 100.f, .speed_limit = 13.9f, .lane_count = 1},
         {.id = EdgeId{2}, .from = NodeId{2}, .to = NodeId{3}, .length = 100.f, .speed_limit = 13.9f, .lane_count = 1},
         {.id = EdgeId{3}, .from = NodeId{3}, .to = NodeId{0}, .length = 100.f, .speed_limit = 13.9f, .lane_count = 1},
     };
-    return {nodes, lanes};
+    return {nodes, edges};
 }
 
 }  // namespace
@@ -158,12 +158,12 @@ TEST(RoadGraph, FindRoutePicksFasterPathOverShorterOne)
         {.id = NodeId{1}, .pos = {.x = 50.f, .y = 50.f}},
         {.id = NodeId{2}, .pos = {.x = 100.f, .y = 0.f}},
     };
-    std::vector<Edge> lanes = {
+    std::vector<Edge> edges = {
         {.id = EdgeId{0}, .from = NodeId{0}, .to = NodeId{2}, .length = 200.f, .speed_limit = 5.f, .lane_count = 1},
         {.id = EdgeId{1}, .from = NodeId{0}, .to = NodeId{1}, .length = 150.f, .speed_limit = 25.f, .lane_count = 1},
         {.id = EdgeId{2}, .from = NodeId{1}, .to = NodeId{2}, .length = 150.f, .speed_limit = 25.f, .lane_count = 1},
     };
-    RoadGraph g{nodes, lanes};
+    RoadGraph g{nodes, edges};
 
     auto route = g.find_route(NodeId{0}, NodeId{2});
     ASSERT_TRUE(route.has_value());

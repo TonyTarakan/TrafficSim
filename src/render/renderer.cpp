@@ -19,16 +19,16 @@ const Node* find_node(std::span<const Node> nodes, NodeId id)
     return (it != nodes.end()) ? &*it : nullptr;
 }
 
-const Edge* find_lane(std::span<const Edge> lanes, EdgeId id)
+const Edge* find_edge(std::span<const Edge> edges, EdgeId id)
 {
     // TODO: make universal with ADL
-    auto it = std::ranges::find_if(lanes, [&](const Edge& l) { return l.id == id; });
-    return (it != lanes.end()) ? &*it : nullptr;
+    auto it = std::ranges::find_if(edges, [&](const Edge& l) { return l.id == id; });
+    return (it != edges.end()) ? &*it : nullptr;
 }
 
 // Unit vector perpendicular to the from->to direction, for offsetting
 // sublanes sideways. Returns {0,0} for a degenerate (zero-length) lane.
-Vec2D lane_perpendicular(Vec2D from, Vec2D to)
+Vec2D perpendicular(Vec2D from, Vec2D to)
 {
     Vec2D dir = to - from;
     float len = std::sqrt(dir.length_sq());
@@ -44,7 +44,7 @@ std::optional<Vec2D> lane_stop_line(std::span<const Node> nodes, std::span<const
 {
     constexpr float kPullbackM = 15.0f;
 
-    const Edge* lane = find_lane(lanes, lane_id);
+    const Edge* lane = find_edge(lanes, lane_id);
     if (!lane) return std::nullopt;
 
     const Node* from = find_node(nodes, lane->from);
@@ -56,7 +56,7 @@ std::optional<Vec2D> lane_stop_line(std::span<const Node> nodes, std::span<const
     if (len < 1e-6f) return to->pos;
 
     Vec2D unit = dir * (1.f / len);
-    Vec2D perp = lane_perpendicular(from->pos, to->pos);
+    Vec2D perp = perpendicular(from->pos, to->pos);
 
     auto pos = to->pos - unit * kPullbackM + perp * kSublaneWidthM;
 
@@ -141,7 +141,7 @@ void Renderer::draw_edges(std::span<const Node> nodes, std::span<const Edge> lan
             continue;
         }
 
-        Vec2D perp = lane_perpendicular(from->pos, to->pos);
+        Vec2D perp = perpendicular(from->pos, to->pos);
 
         // One line per sublane, so a multi-lane road actually looks like one.
         // TODO: fix offsets for overlapping lanes
@@ -162,7 +162,7 @@ void Renderer::draw_vehicles(std::span<const Vehicle> vehicles, std::span<const 
     constexpr float kVehicleSizePx = 8.f;  // TODO: meters?
 
     for (const auto& v : vehicles) {
-        const Edge* lane = find_lane(lanes, v.edge_id);
+        const Edge* lane = find_edge(lanes, v.edge_id);
         if (!lane) continue;
 
         const Node* from = find_node(nodes, lane->from);
@@ -174,7 +174,7 @@ void Renderer::draw_vehicles(std::span<const Vehicle> vehicles, std::span<const 
         Vec2D lane_pos = from->pos + (to->pos - from->pos) * t;
 
         // Offset (parallelogram sum)
-        Vec2D perp = lane_perpendicular(from->pos, to->pos);
+        Vec2D perp = perpendicular(from->pos, to->pos);
         Vec2D world_pos = lane_pos + perp * (static_cast<float>(v.sublane_idx + 1) * kSublaneWidthM);
 
         Vec2D screen_pos = camera.to_screen(world_pos);
