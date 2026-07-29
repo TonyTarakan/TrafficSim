@@ -8,7 +8,6 @@
 #include <format>
 #include <queue>
 
-#include "core/log.hpp"
 #include "core/types.hpp"
 
 namespace ts {
