@@ -23,7 +23,7 @@ TEST(SimEngine, SingleVehicleAcceleratesTowardDesiredSpeed)
               .type = VehicleType::Car,
               .idm_params = default_params(VehicleType::Car),
               .speed = 0.f,
-              .lane_id = EdgeId{0},
+              .edge_id = EdgeId{0},
               .offset = 0.f};
     engine.vehicles().push_back(v);
 
@@ -44,13 +44,13 @@ TEST(SimEngine, FollowerNeverPassesSlowerLeader)
     Vehicle leader{.id = VehicleId{0},
                    .idm_params = default_params(VehicleType::Car),
                    .speed = 5.f,  // running away from a faster follower
-                   .lane_id = EdgeId{0},
+                   .edge_id = EdgeId{0},
                    .offset = 20.f};
 
     Vehicle follower{.id = VehicleId{1},
                      .idm_params = default_params(VehicleType::Car),
                      .speed = 15.f,  // approaching a slower leader
-                     .lane_id = EdgeId{0},
+                     .edge_id = EdgeId{0},
                      .offset = 0.f};
 
     engine.vehicles().push_back(leader);
@@ -75,14 +75,14 @@ TEST(SimEngine, FollowerMatchesGenuinelySlowerLeaderAtSteadyState)
     Vehicle leader{.id = VehicleId{0},
                    .idm_params = default_params(VehicleType::Car),  // default desired_speed = 15 m/s
                    .speed = 8.f,
-                   .lane_id = EdgeId{0},
+                   .edge_id = EdgeId{0},
                    .offset = 30.f};
     leader.idm_params.desired_speed = 8.f;
 
     Vehicle follower{.id = VehicleId{1},
                      .idm_params = default_params(VehicleType::Car),  // default desired_speed = 15 m/s
                      .speed = 8.f,
-                     .lane_id = EdgeId{0},
+                     .edge_id = EdgeId{0},
                      .offset = 0.f};
 
     engine.vehicles().push_back(leader);
@@ -133,7 +133,7 @@ TEST(SimEngine, VehicleStopsAtRedLightJunction)
     Vehicle v{.id = VehicleId{0},
               .idm_params = default_params(VehicleType::Car),
               .speed = 15.f,
-              .lane_id = EdgeId{0},
+              .edge_id = EdgeId{0},
               .offset = 40.f};
     engine.vehicles().push_back(v);
 
@@ -197,13 +197,13 @@ TEST(SimEngine, VehicleYieldsToPriorityCrossTraffic)
     Vehicle minor{.id = VehicleId{0},
                   .idm_params = default_params(VehicleType::Car),
                   .speed = 10.f,
-                  .lane_id = EdgeId{0},
+                  .edge_id = EdgeId{0},
                   .offset = 40.f};
     // ...while a main-road vehicle is mid-crossing, well inside the gap-acceptance window.
     Vehicle main{.id = VehicleId{1},
                  .idm_params = default_params(VehicleType::Car),
                  .speed = 10.f,
-                 .lane_id = EdgeId{2},
+                 .edge_id = EdgeId{2},
                  .offset = 40.f};
 
     engine.vehicles().push_back(minor);

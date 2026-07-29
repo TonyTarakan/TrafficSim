@@ -18,51 +18,39 @@ bool TrafficLightControl::is_green(EdgeId lane) const
     return (std::ranges::find(current.green_lanes, lane) != current.green_lanes.end());
 }
 
-namespace {
-
-const Node* find_node(NodeId id, std::span<const Node> nodes)
-{
-    auto it = std::ranges::find(nodes, id, &Node::id);
-    return (it != nodes.end()) ? &*it : nullptr;
-}
-
-const Edge* find_lane(EdgeId id, std::span<const Edge> lanes)
-{
-    auto it = std::ranges::find(lanes, id, &Edge::id);
-    return (it != lanes.end()) ? &*it : nullptr;
-}
-
-}  // namespace
-
-void JunctionMap::rebuild(std::vector<Junction> junctions, std::span<const Node> nodes, std::span<const Edge> lanes)
+void JunctionMap::rebuild(std::vector<Junction> junctions, const RoadGraph& graph)
 {
     junctions_ = std::move(junctions);
     index_by_node_.clear();
     index_by_lane_.clear();
 
     for (std::size_t i = 0; i < junctions_.size(); ++i) {
-        Junction& junction = junctions_[i];
-        index_by_node_[junction.node_id] = i;
+        Junction& j = junctions_[i];
+        index_by_node_[j.node_id] = i;
 
-        if (const Node* node = find_node(junction.node_id, nodes)) {
-            junction.pos = node->pos;
+        if (j.node_id.get() < graph.node_count()) {
+            const Node& node = graph.get_node(j.node_id);
+            j.pos = node.pos;
         }
         else {
-            LOG_WARNING(log::get(), "junction references unknown node {}", junction.node_id.get());
+            LOG_WARNING(log::get(), "junction references unknown node {}", j.node_id.get());
         }
 
-        junction.lines_from.clear();
-        for (EdgeId lane_id : junction.incoming) {
+        j.lines_from.clear();
+        for (EdgeId lane_id : j.incoming) {
             index_by_lane_[lane_id] = i;
-
-            const Edge* lane = find_lane(lane_id, lanes);
-            const Node* from_node = lane ? find_node(lane->from, nodes) : nullptr;
-            if (from_node) {
-                junction.lines_from[lane_id] = from_node->pos;
+            if (lane_id.get() >= graph.edge_count()) {
+                LOG_WARNING(log::get(), "junction {}: unknown lane {}", j.node_id.get(), lane_id.get());
+                continue;
+            }
+            const Edge& edge = graph.get_edge(lane_id);
+            if (edge.from.get() < graph.node_count()) {
+                const Node& from_node = graph.get_node(edge.from);
+                j.lines_from[lane_id] = from_node.pos;
             }
             else {
-                LOG_WARNING(log::get(), "junction {}: can't resolve approach geometry for lane {}",
-                            junction.node_id.get(), lane_id.get());
+                LOG_WARNING(log::get(), "junction {}: edge {} has invalid from-node {}", j.node_id.get(), lane_id.get(),
+                            edge.from.get());
             }
         }
     }
@@ -113,14 +101,13 @@ constexpr float kCriticalGapS = 4.f;      // s   - minimum accepted gap in highe
 // Check if someone is just behind the crossroad/junction
 // We don't track turn-specific paths through the node yet
 bool junction_is_occupied(NodeId node_id, VehicleId ego_id, std::span<const Vehicle> all_vehicles,
-                          std::span<const Edge> all_lanes)
+                          const RoadGraph& graph)
 {
     return std::ranges::any_of(all_vehicles, [&](const Vehicle& other) {
         if (other.id == ego_id) return false;
-
-        return std::ranges::any_of(all_lanes, [&](const Edge& l) {
-            return (l.id == other.lane_id && l.from == node_id && other.offset < kClearanceWindow);
-        });
+        if (other.edge_id.get() >= graph.edge_count()) return false;
+        const Edge& e = graph.get_edge(other.edge_id);
+        return (e.from == node_id && other.offset < kClearanceWindow);
     });
 }
 
@@ -128,7 +115,7 @@ bool junction_is_occupied(NodeId node_id, VehicleId ego_id, std::span<const Vehi
 bool someone_is_approaching(const Edge& rival_lane, std::span<const Vehicle> all_vehicles)
 {
     for (const auto& other : all_vehicles) {
-        if (other.lane_id != rival_lane.id) continue;
+        if (other.edge_id != rival_lane.id) continue;
 
         float rival_distance = rival_lane.length - other.offset;
         if (rival_distance < 0.f) continue;              // past the line
@@ -147,23 +134,20 @@ bool someone_is_approaching(const Edge& rival_lane, std::span<const Vehicle> all
 // by PriorityControl (rivals from the sign) and UnregulatedControl
 // (rivals worked out from geometry).
 bool yields_to_rivals(const Junction& junction, VehicleId ego_id, std::span<const EdgeId> rival_lanes,
-                      std::span<const Vehicle> all_vehicles, std::span<const Edge> all_lanes)
+                      std::span<const Vehicle> all_vehicles, const RoadGraph& graph)
 {
     if (rival_lanes.empty()) {
         return false;
     }
 
-    if (junction_is_occupied(junction.node_id, ego_id, all_vehicles, all_lanes)) {
+    if (junction_is_occupied(junction.node_id, ego_id, all_vehicles, graph)) {
         return true;
     }
 
-    for (EdgeId rival_id : rival_lanes) {
-        auto rival_lane_it = std::ranges::find(all_lanes, rival_id, &Edge::id);
-        if (rival_lane_it == all_lanes.end()) continue;
-
-        if (someone_is_approaching(*rival_lane_it, all_vehicles)) {
-            return true;
-        }
+    for (EdgeId rid : rival_lanes) {
+        if (rid.get() >= graph.edge_count()) continue;
+        const Edge& e = graph.get_edge(rid);
+        if (someone_is_approaching(e, all_vehicles)) return true;
     }
 
     return false;
@@ -212,7 +196,7 @@ struct overloaded : Ts... {
 }  // namespace
 
 std::optional<idm::LeaderInfo> leader_to_yield(const Vehicle& ego, const Edge& ego_lane, const JunctionMap& junctions,
-                                               std::span<const Vehicle> all_vehicles, std::span<const Edge> all_lanes)
+                                               std::span<const Vehicle> all_vehicles, const RoadGraph& graph)
 {
     float distance_to_stop = ego_lane.length - ego.offset;
     if (distance_to_stop < 0.f) return std::nullopt;              // already past the line
@@ -229,7 +213,7 @@ std::optional<idm::LeaderInfo> leader_to_yield(const Vehicle& ego, const Edge& e
 
         [&](const UnregulatedControl& ) {
             auto rivals = right_hand_rivals(*junction, ego_lane);
-            return yields_to_rivals(*junction, ego.id, rivals, all_vehicles, all_lanes);
+            return yields_to_rivals(*junction, ego.id, rivals, all_vehicles, graph);
         },
 
         [&](const TrafficLightControl& control) { 
@@ -240,7 +224,7 @@ std::optional<idm::LeaderInfo> leader_to_yield(const Vehicle& ego, const Edge& e
             auto it = control.yields_to.find(ego_lane.id);
             if (it == control.yields_to.end()) return false;
             
-            return yields_to_rivals(*junction, ego.id, it->second, all_vehicles, all_lanes);
+            return yields_to_rivals(*junction, ego.id, it->second, all_vehicles, graph);
         }
 
     }, junction->control);

@@ -162,7 +162,7 @@ void Renderer::draw_vehicles(std::span<const Vehicle> vehicles, std::span<const 
     constexpr float kVehicleSizePx = 8.f;  // TODO: meters?
 
     for (const auto& v : vehicles) {
-        const Edge* lane = find_lane(lanes, v.lane_id);
+        const Edge* lane = find_lane(lanes, v.edge_id);
         if (!lane) continue;
 
         const Node* from = find_node(nodes, lane->from);

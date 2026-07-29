@@ -16,7 +16,7 @@ namespace ts {
 
 namespace {
 
-// Finds the closest vehicle ahead of 'ego' on the same lane and sublane.
+// Finds the closest vehicle ahead of 'ego' on the same edge and sublane.
 // TODO: Take vehicle size into account, centre-to-centre for now
 std::optional<idm::LeaderInfo> find_leader(const Vehicle& ego, std::span<const Vehicle> all_vehicles)
 {
@@ -25,7 +25,7 @@ std::optional<idm::LeaderInfo> find_leader(const Vehicle& ego, std::span<const V
 
     for (const auto& other : all_vehicles) {
         if (other.id == ego.id) continue;
-        if (other.lane_id != ego.lane_id) continue;
+        if (other.edge_id != ego.edge_id) continue;
         if (other.sublane_idx != ego.sublane_idx) continue;
         if (other.offset <= ego.offset) continue;  // behind us, not a leader
 
@@ -39,37 +39,6 @@ std::optional<idm::LeaderInfo> find_leader(const Vehicle& ego, std::span<const V
     return best;
 }
 
-}  // namespace
-
-SimEngine::SimEngine(SimConfig config) : config_(config), pool_(config.num_threads) {}
-
-void SimEngine::set_map(std::vector<Node> nodes, std::vector<Edge> lanes)
-{
-    LOG_INFO(log::get(), "map loaded: {} nodes, {} lanes", nodes.size(), lanes.size());
-    graph_.rebuild(nodes, lanes);
-    lanes_ = std::move(lanes);
-    nodes_ = std::move(nodes);
-}
-
-void SimEngine::set_junctions(std::vector<Junction> junctions)
-{
-    LOG_INFO(log::get(), "{} junction(s) loaded", junctions.size());
-    junctions_.rebuild(std::move(junctions), nodes_, lanes_);
-}
-
-std::optional<std::vector<EdgeId>> SimEngine::compute_route(NodeId src, NodeId dst) const
-{
-    return graph_.find_route(src, dst);
-}
-
-const Edge* SimEngine::find_lane(EdgeId id) const
-{
-    auto it = std::ranges::find_if(lanes_, [&](const Edge& l) { return l.id == id; });
-    return (it != lanes_.end()) ? &*it : nullptr;
-}
-
-namespace {
-
 // TODO: remove code duplication
 float generate_rand(float from, float to)
 {
@@ -81,8 +50,44 @@ float generate_rand(float from, float to)
 
 }  // namespace
 
+void SimEngine::set_map(std::vector<Node> nodes, std::vector<Edge> edges)
+{
+    LOG_INFO(log::get(), "map loaded: {} nodes, {} edges", nodes.size(), edges.size());
+    graph_ = std::make_unique<RoadGraph>(std::move(nodes), std::move(edges));
+    // Junctions are invalid now
+    junctions_ = JunctionMap{};
+}
+
+void SimEngine::set_junctions(std::vector<Junction> junctions)
+{
+    if (!graph_) {
+        LOG_ERROR(log::get(), "set_junctions called before set_map");
+        return;
+    }
+    LOG_INFO(log::get(), "{} junction(s) loaded", junctions.size());
+    junctions_.rebuild(std::move(junctions), *graph_);
+}
+
+std::optional<std::vector<EdgeId>> SimEngine::compute_route(NodeId src, NodeId dst) const
+{
+    if (!graph_) return std::nullopt;
+    return graph_->find_route(src, dst);
+}
+
+const Edge* SimEngine::find_edge(EdgeId id) const
+{
+    if (!graph_) return nullptr;
+    if (id.get() >= graph_->edge_count()) return nullptr;
+    return &graph_->get_edge(id);
+}
+
 void SimEngine::tick()
 {
+    if (!graph_) {
+        LOG_WARNING(log::get(), "tick called with no map loaded");
+        return;
+    }
+
     junctions_.advance_signals(config_.fixed_dt);
 
     // --- lane-change decisions, on the pre-tick snapshot ---
@@ -98,12 +103,11 @@ void SimEngine::tick()
     pool_.parallel_for(
         [&](std::size_t begin, std::size_t end) {
             for (std::size_t i = begin; i < end; ++i) {
-                if (vehicles_[i].lane_change_cooldown > 0.f) {
-                    continue;  // still cooling down from a recent switch — skip decide()
-                }
-                const Edge* lane = find_lane(vehicles_[i].lane_id);
+                Vehicle& v = vehicles_[i];
+                if (v.lane_change_cooldown > 0.f) continue;
+                const Edge* lane = find_edge(v.edge_id);
                 std::uint8_t num_sublanes = lane ? lane->lane_count : 1;
-                sublane_deltas[i] = decide(vehicles_[i], vehicles_, num_sublanes);
+                sublane_deltas[i] = decide(v, vehicles_, num_sublanes);
             }
         },
         vehicles_.size());
@@ -144,9 +148,9 @@ void SimEngine::tick()
     pool_.parallel_for(
         [&](std::size_t begin, std::size_t end) {
             for (std::size_t i = begin; i < end; ++i) {
-                const Edge* cur_lane = find_lane(vehicles_[i].lane_id);
+                const Edge* cur_lane = find_edge(vehicles_[i].edge_id);
                 if (cur_lane) {  // TODO: is it OK when the vehicle is out of lane?
-                    junction_leaders[i] = leader_to_yield(vehicles_[i], *cur_lane, junctions_, vehicles_, lanes_);
+                    junction_leaders[i] = leader_to_yield(vehicles_[i], *cur_lane, junctions_, vehicles_, *graph_);
                 }
             }
         },
@@ -187,12 +191,12 @@ void SimEngine::tick()
         [&](std::size_t begin, std::size_t end) {
             for (std::size_t i = begin; i < end; ++i) {
                 Vehicle& v = vehicles_[i];
-                const Edge* cur_lane = find_lane(v.lane_id);
-                if (!cur_lane || v.offset <= cur_lane->length) {
+                const Edge* cur_edge = find_edge(v.edge_id);
+                if (!cur_edge || v.offset <= cur_edge->length) {
                     continue;  // still within the current lane, nothing to do
                 }
 
-                float overflow = v.offset - cur_lane->length;
+                float overflow = v.offset - cur_edge->length;
 
                 if (v.route_idx + 1 >= v.route.size()) {
                     // Workaround. No despawn logic yet, loop back to the start
@@ -204,7 +208,7 @@ void SimEngine::tick()
 
                 if (v.route.empty()) continue;  // stay put at the lane's end
 
-                v.lane_id = v.route[v.route_idx];
+                v.edge_id = v.route[v.route_idx];
                 v.offset = overflow;
 
                 // Forced merge: if the new lane has fewer sublanes than our
@@ -212,8 +216,8 @@ void SimEngine::tick()
                 // not a negotiated one -- MOBIL doesn't yet look ahead to an
                 // upcoming lane-count reduction, so vehicles don't proactively
                 // merge early. That's a natural follow-up, not this step.
-                const Edge* new_lane = find_lane(v.lane_id);
-                int max_sublane = new_lane ? static_cast<int>(new_lane->lane_count) - 1 : 0;
+                const Edge* new_edge = find_edge(v.edge_id);
+                int max_sublane = new_edge ? static_cast<int>(new_edge->lane_count) - 1 : 0;
                 if (v.sublane_idx > max_sublane) {
                     v.sublane_idx = max_sublane;
                 }

@@ -17,7 +17,7 @@ const Vehicle* find_ahead(const Vehicle& ego, std::span<const Vehicle> all_vehic
 
     for (const auto& other : all_vehicles) {
         if (other.id == ego.id) continue;
-        if (other.lane_id != ego.lane_id) continue;
+        if (other.edge_id != ego.edge_id) continue;
         if (other.sublane_idx != sublane_idx) continue;
         if (other.offset <= ego.offset) continue;
 
@@ -39,7 +39,7 @@ const Vehicle* find_behind(const Vehicle& ego, std::span<const Vehicle> all_vehi
 
     for (const auto& other : all_vehicles) {
         if (other.id == ego.id) continue;
-        if (other.lane_id != ego.lane_id) continue;
+        if (other.edge_id != ego.edge_id) continue;
         if (other.sublane_idx != sublane_idx) continue;
         if (other.offset >= ego.offset) continue;
 

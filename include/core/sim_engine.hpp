@@ -28,12 +28,13 @@ struct SimConfig {
 
 class SimEngine {
 public:
-    explicit SimEngine(SimConfig config = {});
+    explicit SimEngine(SimConfig config = {}) : config_(config), pool_(config.num_threads) {}
 
     // Advance the simulation by one step.
     void tick();
 
-    void set_map(std::vector<Node> nodes, std::vector<Edge> lanes);
+    // Take nodes and lanes ownership
+    void set_map(std::vector<Node> nodes, std::vector<Edge> edges);
 
     // TODO: resolve dependencies
     // 'set_junctions' requires set_map() to have been called first.
@@ -49,15 +50,12 @@ public:
     TripleBuffer<WorldSnapshot>& world_buffer() & noexcept { return world_buffer_; }
 
 private:
-    [[nodiscard]] const Edge* find_lane(EdgeId id) const;
+    [[nodiscard]] const Edge* find_edge(EdgeId id) const;
 
     SimConfig config_;
     std::vector<Vehicle> vehicles_;
 
-    // TODO: do we need lanes_/nodes_ or it can be fully replaced by graph_?
-    std::vector<Edge> lanes_;
-    std::vector<Node> nodes_;
-    RoadGraph graph_;
+    std::unique_ptr<RoadGraph> graph_;  // main data storage
     JunctionMap junctions_;
 
     double sim_time_{0.0};

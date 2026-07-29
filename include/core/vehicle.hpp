@@ -29,7 +29,7 @@ struct Vehicle {
 
     // TODO: Do ew need a separate lane_id?
     // We should always have a route(even while parking)
-    EdgeId lane_id{};  // Which road segment the vehicle is on.
+    EdgeId edge_id{};  // Which road segment the vehicle is on.
 
     // How far are we from the lane's start.
     float offset{0.f};  // m

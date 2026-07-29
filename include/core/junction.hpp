@@ -60,7 +60,7 @@ class JunctionMap {
 public:
     // 'nodes'/'lanes' are the same map data passed to RoadGraph::rebuild();
     // used once here to resolve each junction, not stored afterwards.
-    void rebuild(std::vector<Junction> junctions, std::span<const Node> nodes, std::span<const Edge> lanes);
+    void rebuild(std::vector<Junction> junctions, const RoadGraph& graph);
 
     [[nodiscard]] const Junction* find_by_node(NodeId node_id) const;
     [[nodiscard]] const Junction* find_by_lane(EdgeId incoming_lane_id) const;
@@ -82,6 +82,6 @@ private:
 // nullopt means the way is free.
 [[nodiscard]]
 std::optional<idm::LeaderInfo> leader_to_yield(const Vehicle& ego, const Edge& ego_lane, const JunctionMap& junctions,
-                                               std::span<const Vehicle> all_vehicles, std::span<const Edge> all_lanes);
+                                               std::span<const Vehicle> all_vehicles, const RoadGraph& graph);
 
 }  // namespace ts

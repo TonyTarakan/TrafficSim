@@ -28,7 +28,7 @@ TEST(RoadNode, CanSetFields)
 TEST(Lane, DefaultIsInvalid)
 {
     Edge l;
-    EXPECT_EQ(l.id, kInvalidLane);
+    EXPECT_EQ(l.id, kInvalidEdge);
     EXPECT_EQ(l.from, kInvalidNode);
     EXPECT_EQ(l.to, kInvalidNode);
 }
@@ -87,8 +87,7 @@ std::pair<std::vector<Node>, std::vector<Edge>> make_square()
 TEST(RoadGraph, RebuildPopulatesAdjacency)
 {
     auto [nodes, lanes] = make_square();
-    RoadGraph g;
-    g.rebuild(nodes, lanes);
+    RoadGraph g{nodes, lanes};
 
     auto out = g.outgoing_lanes(NodeId{0});
     ASSERT_EQ(out.size(), 1u);
@@ -99,8 +98,7 @@ TEST(RoadGraph, SinkNodeHasEmptyOutgoing)
 {
     auto [nodes, lanes] = make_square();
     lanes.pop_back();  // remove lane 3 -> 0, so node 3 becomes a dead end
-    RoadGraph g;
-    g.rebuild(nodes, lanes);
+    RoadGraph g{nodes, lanes};
 
     EXPECT_TRUE(g.outgoing_lanes(NodeId{3}).empty());
 }
@@ -108,8 +106,7 @@ TEST(RoadGraph, SinkNodeHasEmptyOutgoing)
 TEST(RoadGraph, LaneEndNodeIsCorrect)
 {
     auto [nodes, lanes] = make_square();
-    RoadGraph g;
-    g.rebuild(nodes, lanes);
+    RoadGraph g{nodes, lanes};
 
     EXPECT_EQ(g.destination_node(EdgeId{0}), NodeId{1});
     EXPECT_EQ(g.destination_node(EdgeId{2}), NodeId{3});
@@ -119,8 +116,7 @@ TEST(RoadGraph, LaneEndNodeIsCorrect)
 TEST(RoadGraph, FindRouteSameNodeIsEmptyPath)
 {
     auto [nodes, lanes] = make_square();
-    RoadGraph g;
-    g.rebuild(nodes, lanes);
+    RoadGraph g{nodes, lanes};
 
     auto route = g.find_route(NodeId{1}, NodeId{1});
     ASSERT_TRUE(route.has_value());
@@ -130,8 +126,7 @@ TEST(RoadGraph, FindRouteSameNodeIsEmptyPath)
 TEST(RoadGraph, FindRouteDirectNeighbour)
 {
     auto [nodes, lanes] = make_square();
-    RoadGraph g;
-    g.rebuild(nodes, lanes);
+    RoadGraph g{nodes, lanes};
 
     auto route = g.find_route(NodeId{0}, NodeId{1});
     ASSERT_TRUE(route.has_value());
@@ -142,8 +137,7 @@ TEST(RoadGraph, FindRouteDirectNeighbour)
 TEST(RoadGraph, FindRouteMultiHop)
 {
     auto [nodes, lanes] = make_square();
-    RoadGraph g;
-    g.rebuild(nodes, lanes);
+    RoadGraph g{nodes, lanes};
 
     // Only path around the loop is 0 -> 1 -> 2 (lanes are one-directional).
     auto route = g.find_route(NodeId{0}, NodeId{2});
@@ -169,8 +163,7 @@ TEST(RoadGraph, FindRoutePicksFasterPathOverShorterOne)
         {.id = EdgeId{1}, .from = NodeId{0}, .to = NodeId{1}, .length = 150.f, .speed_limit = 25.f, .lane_count = 1},
         {.id = EdgeId{2}, .from = NodeId{1}, .to = NodeId{2}, .length = 150.f, .speed_limit = 25.f, .lane_count = 1},
     };
-    RoadGraph g;
-    g.rebuild(nodes, lanes);
+    RoadGraph g{nodes, lanes};
 
     auto route = g.find_route(NodeId{0}, NodeId{2});
     ASSERT_TRUE(route.has_value());
@@ -183,8 +176,7 @@ TEST(RoadGraph, FindRouteUnreachableReturnsNullopt)
 {
     auto [nodes, lanes] = make_square();
     lanes.pop_back();  // node 3 -> 0 removed, breaks the loop
-    RoadGraph g;
-    g.rebuild(nodes, lanes);
+    RoadGraph g{nodes, lanes};
 
     // Node 3 is still reachable from 0, but nothing leads back to 0 from 3.
     auto route = g.find_route(NodeId{3}, NodeId{0});

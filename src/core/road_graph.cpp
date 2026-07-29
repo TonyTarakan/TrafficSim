@@ -1,44 +1,75 @@
 #include "core/road_graph.hpp"
 
 #include <algorithm>
+#include <cassert>
 #include <cmath>
 #include <queue>
 
 #include "core/types.hpp"
 
 namespace ts {
-
-void RoadGraph::rebuild(std::span<const Node> nodes, std::span<const Edge> lanes)
+RoadGraph::RoadGraph(std::vector<Node> nodes, std::vector<Edge> edges)
+    : nodes_(std::move(nodes)), edges_(std::move(edges))
 {
-    adjacency_.clear();
-    lane_dest_.clear();
-    lanes_by_id_.clear();
-    nodes_by_id_.clear();
+    build_indices();
+}
 
-    for (const auto& n : nodes) {
-        nodes_by_id_[n.id] = n;
-        adjacency_.try_emplace(n.id);  // micro optimization
+void RoadGraph::build_indices()
+{
+    const std::size_t node_cnt = nodes_.size();
+
+    // Подсчёт исходящих сегментов для каждого узла
+    std::vector<uint32_t> out_degree(node_cnt, 0);
+    for (const auto& lane : edges_) {
+        out_degree[lane.from.get()]++;
     }
-    for (const auto& l : lanes) {
-        adjacency_[l.from].emplace_back(l.id);
-        lane_dest_[l.id] = l.to;
-        lanes_by_id_[l.id] = l;
+
+    // Префиксные суммы для offsets
+    outgoing_offsets_.resize(node_cnt + 1);
+    outgoing_offsets_[0] = 0;
+    for (size_t i = 0; i < node_cnt; ++i) {
+        outgoing_offsets_[i + 1] = outgoing_offsets_[i] + out_degree[i];
     }
+
+    // Заполнение списка исходящих сегментов
+    outgoing_edges_.resize(outgoing_offsets_[node_cnt]);
+    std::vector<uint32_t> cursor = outgoing_offsets_;  // копия
+    for (const auto& lane : edges_) {
+        uint32_t pos = cursor[lane.from.get()]++;
+        outgoing_edges_[pos] = lane.id;
+    }
+}
+
+const Node& RoadGraph::get_node(NodeId id) const
+{
+    assert(id.get() < nodes_.size());
+    return nodes_[id.get()];
+}
+
+const Edge& RoadGraph::get_edge(EdgeId id) const
+{
+    assert(id.get() < edges_.size());
+    return edges_[id.get()];
 }
 
 std::span<const EdgeId> RoadGraph::outgoing_lanes(NodeId node) const
 {
-    auto it = adjacency_.find(node);
-    if (it == adjacency_.end()) {
+    if (node.get() < nodes_.size()) {
         return {};
     }
-    return it->second;
+
+    uint32_t start = outgoing_offsets_[node.get()];
+    uint32_t count = outgoing_offsets_[node.get() + 1] - start;
+
+    return {outgoing_edges_.data() + start, count};
 }
 
-NodeId RoadGraph::destination_node(EdgeId lane) const
+NodeId RoadGraph::destination_node(EdgeId edge) const
 {
-    auto it = lane_dest_.find(lane);
-    return (it != lane_dest_.end()) ? it->second : kInvalidNode;
+    if (edge.get() < edges_.size())
+        return kInvalidNode;
+    else
+        return edges_[edge.get()].to;
 }
 
 // A* over the lane graph
@@ -62,14 +93,15 @@ std::optional<std::vector<EdgeId>> RoadGraph::find_route(NodeId src_id, NodeId d
     auto curr_h_cost = [&](NodeId node_id) -> float {
         constexpr float kOptimisticTopSpeed = 33.f;  // TODO: maybe default param?
 
-        auto it_n = nodes_by_id_.find(node_id);
-        auto it_d = nodes_by_id_.find(dst_id);
-        if (it_n == nodes_by_id_.end() || it_d == nodes_by_id_.end()) {
+        // Check both exist
+        if (node_id.get() >= nodes_.size() || dst_id.get() >= nodes_.size()) {
             return 0.f;
         }
 
-        Vec2D d = it_n->second.pos - it_d->second.pos;
-        return std::sqrt(d.length_sq()) / kOptimisticTopSpeed;
+        const Node& n = nodes_[node_id.get()];
+        const Node& d = nodes_[dst_id.get()];
+        Vec2D delta = n.pos - d.pos;
+        return std::sqrt(delta.length_sq()) / kOptimisticTopSpeed;
     };
 
     // Frontier aka Open aka Candidates to process.
@@ -115,22 +147,18 @@ std::optional<std::vector<EdgeId>> RoadGraph::find_route(NodeId src_id, NodeId d
             continue;
         }
 
-        for (EdgeId lane_id : outgoing_lanes(curr_id)) {
-            auto it = lanes_by_id_.find(lane_id);
-            if (it == lanes_by_id_.end()) {
-                continue;
-            }
+        for (EdgeId edge_id : outgoing_lanes(curr_id)) {
+            const Edge& edge = edges_[edge_id.get()];
+            NodeId next_id = edge.to;
 
-            const Edge& lane = it->second;
-            NodeId next_id = lane.to;
             constexpr float kMinSpeed = 0.1f;
-            float edge_cost = lane.length / std::max(lane.speed_limit, kMinSpeed);
+            float edge_cost = edge.length / std::max(edge.speed_limit, kMinSpeed);
             float best_cost_next = best_g_so_far + edge_cost;
 
             // Found a cheaper path to next.
             if (!best_costs.contains(next_id) || best_cost_next < best_costs[next_id]) {
                 best_costs[next_id] = best_cost_next;
-                came_via[next_id] = lane_id;
+                came_via[next_id] = edge_id;
                 came_from[next_id] = curr_id;
                 frontier.emplace(best_cost_next + curr_h_cost(next_id), next_id);
             }

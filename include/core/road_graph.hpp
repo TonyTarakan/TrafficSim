@@ -3,7 +3,6 @@
 #include <cstdint>
 #include <optional>
 #include <span>
-#include <unordered_map>
 #include <vector>
 
 #include "core/types.hpp"
@@ -22,7 +21,7 @@ struct Node {
 
 // A directed road segment connecting two Nodes.
 struct Edge {
-    EdgeId id{kInvalidLane};
+    EdgeId id{kInvalidEdge};
 
     NodeId from{kInvalidNode};
     NodeId to{kInvalidNode};
@@ -32,34 +31,53 @@ struct Edge {
     std::uint8_t lane_count{1};  // parallel lanes in one direction
 };
 
+// TODO
+//
+// Lane (a.k.a sublane) on an Edge(one way road segment)
+// struct Lane {
+//     LaneId id;
+//     EdgeId edge;
+//     std::uint8_t index;  // 0..lane_count-1
+//     // additional properties (speed, allowed vehicle types, etc)
+// };
+
 // Adjacency list over Lane objects.
 // A* pathfinding.
-// Keeps its own copies of Lane/Node data
+// Owns Lane and Node data
 class RoadGraph {
-    // TODO: rebuild or construct?
 public:
-    void rebuild(std::span<const Node> nodes, std::span<const Edge> lanes);
+    RoadGraph(std::vector<Node> nodes, std::vector<Edge> edges);
+
+    // Read-only access
+    [[nodiscard]] const Node& get_node(NodeId id) const;
+    [[nodiscard]] const Edge& get_edge(EdgeId id) const;
 
     // All lanes leaving a given node.
-    // WARNING: the returned span dangles after the next rebuild()
     [[nodiscard]] std::span<const EdgeId> outgoing_lanes(NodeId node) const;
 
-    // The node a lane leads into.
-    [[nodiscard]] NodeId destination_node(EdgeId lane) const;
+    // The node a edge leads into.
+    [[nodiscard]] NodeId destination_node(EdgeId edge) const;
+
+    [[nodiscard]] size_t node_count() const noexcept { return nodes_.size(); }
+    [[nodiscard]] size_t edge_count() const noexcept { return edges_.size(); }
 
     // Shortest path (by travel time = length / speed_limit) from src to dst,
     // Return value:
-    //  Sequence of lane ids;
+    //  Sequence of edge ids;
     //  Empty vector means src == dst;
     //  nullopt means dst is unreachable from src.
     [[nodiscard]] std::optional<std::vector<EdgeId>> find_route(NodeId src_id, NodeId dst_id) const;
 
 private:
-    // TODO: try another containers later
-    std::unordered_map<NodeId, std::vector<EdgeId>> adjacency_;  // All Lanes 'growing' from the node
-    std::unordered_map<EdgeId, NodeId> lane_dest_;               // Lane destination
-    std::unordered_map<EdgeId, Edge> lanes_by_id_;
-    std::unordered_map<NodeId, Node> nodes_by_id_;
+    // Data
+    std::vector<Node> nodes_;
+    std::vector<Edge> edges_;
+
+    // Quick access indicies
+    std::vector<std::uint32_t> outgoing_offsets_;  // размер node_count+1
+    std::vector<EdgeId> outgoing_edges_;           // all
+
+    void build_indices();
 };
 
 }  // namespace ts

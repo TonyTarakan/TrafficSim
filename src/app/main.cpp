@@ -213,7 +213,7 @@ void spawn_stream(ts::SimEngine& engine, ts::NodeId origin_node, ts::NodeId dest
             .type = ts::VehicleType::Car,
             .idm_params = ts::default_params(ts::VehicleType::Car),
             .speed = random_speed,
-            .lane_id = route->front(),
+            .edge_id = route->front(),
             .offset = static_cast<float>(i) * 12.f,  // spread along the lane
             .route = *route,
         };

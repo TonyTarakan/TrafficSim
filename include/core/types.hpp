@@ -19,13 +19,12 @@ private:
 
 using NodeId = StrongId<struct NodeTag>;
 using EdgeId = StrongId<struct EdgeTag>;
-using LaneId = StrongId<struct LaneTag>;
 
 using VehicleId = StrongId<struct VehicleTag>;
 using TrafficLightId = StrongId<struct TrafficLightTag>;
 
 inline constexpr NodeId kInvalidNode{std::numeric_limits<std::uint32_t>::max()};
-inline constexpr EdgeId kInvalidLane{std::numeric_limits<std::uint32_t>::max()};
+inline constexpr EdgeId kInvalidEdge{std::numeric_limits<std::uint32_t>::max()};
 
 }  // namespace ts
 

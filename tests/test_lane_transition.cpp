@@ -29,7 +29,7 @@ TEST(LaneTransition, VehicleAdvancesToNextLaneOnRoute)
     Vehicle v;
     v.id = VehicleId{0};
     v.idm_params = default_params(VehicleType::Car);
-    v.lane_id = EdgeId{0};
+    v.edge_id = EdgeId{0};
     v.offset = 95.f;  // near the end of lane 0
     v.speed = 15.f;
     v.route = *route;
@@ -39,7 +39,7 @@ TEST(LaneTransition, VehicleAdvancesToNextLaneOnRoute)
     for (int i = 0; i < 100 && !transitioned; ++i) {
         engine.tick();
         const auto& r = engine.vehicles()[0];
-        if (r.lane_id == EdgeId{1}) {
+        if (r.edge_id == EdgeId{1}) {
             transitioned = true;
             EXPECT_EQ(r.route_idx, 1u);
             EXPECT_GE(r.offset, 0.f);
@@ -69,7 +69,7 @@ TEST(LaneTransition, ForcedMergeClampsSublaneOnNarrowerLane)
     Vehicle v;
     v.id = VehicleId{0};
     v.idm_params = default_params(VehicleType::Car);
-    v.lane_id = EdgeId{0};
+    v.edge_id = EdgeId{0};
     v.sublane_idx = 2;  // leftmost of 3 -- doesn't exist on the bottleneck lane
     v.offset = 95.f;
     v.speed = 15.f;
@@ -80,7 +80,7 @@ TEST(LaneTransition, ForcedMergeClampsSublaneOnNarrowerLane)
     for (int i = 0; i < 100 && !merged; ++i) {
         engine.tick();
         const auto& r = engine.vehicles()[0];
-        if (r.lane_id == EdgeId{1}) {
+        if (r.edge_id == EdgeId{1}) {
             merged = true;
             EXPECT_EQ(r.sublane_idx, 0);  // only valid slot on the 1-sublane road
         }
@@ -116,7 +116,7 @@ TEST(LaneTransition, TwoStreamsBothReachSharedLane)
         Vehicle v;
         v.id = VehicleId{static_cast<uint32_t>(i)};
         v.idm_params = default_params(VehicleType::Car);
-        v.lane_id = EdgeId{0};
+        v.edge_id = EdgeId{0};
         v.sublane_idx = i % 2;
         v.offset = static_cast<float>(i) * 20.f;
         v.speed = 10.f;
@@ -127,7 +127,7 @@ TEST(LaneTransition, TwoStreamsBothReachSharedLane)
         Vehicle v;
         v.id = VehicleId{static_cast<uint32_t>(i)};
         v.idm_params = default_params(VehicleType::Car);
-        v.lane_id = EdgeId{1};
+        v.edge_id = EdgeId{1};
         v.sublane_idx = i % 2;
         v.offset = static_cast<float>(i - 4) * 20.f;
         v.speed = 10.f;
@@ -139,7 +139,7 @@ TEST(LaneTransition, TwoStreamsBothReachSharedLane)
     for (int tick = 0; tick < 2000; ++tick) {  // 40s
         engine.tick();
         for (const auto& v : engine.vehicles()) {
-            if (v.lane_id == EdgeId{2}) ever_merged.insert(v.id);
+            if (v.edge_id == EdgeId{2}) ever_merged.insert(v.id);
         }
     }
 
