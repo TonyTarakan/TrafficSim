@@ -90,19 +90,19 @@ constexpr ts::EdgeId kEdgeJ3_S3{17};
 constexpr ts::EdgeId kEdgeS3_J3{18};
 constexpr ts::EdgeId kEdgeJ3_N3{19};
 
-//                         N1              N2              N3
-//                         |               |               |
-//   W0 === J1 =========== J2 ============ J3 ============ E0
-//                         |               |               |
-//                         S1              S2              S3
+//          N1             N2              N3
+//          |              |               |
+//   W0 === J1 =========== J2 ============ J3 === E0
+//          |              |               |
+//          S1             S2              S3
 //
 // A main road running W0 -> E0 through three crossroads, each demonstrating
 // a different JunctionControl strategy, plus a two-way cross street at
 // every one of them so through traffic and cross traffic actually
 // collide:
 //
-//   J1: UnregulatedControl -- right-hand rule
-//   J2: PriorityControl    -- main road is signposted, cross street yields both ways
+//   J1: UnregulatedControl  -- right-hand rule
+//   J2: PriorityControl     -- main road is signposted, cross street yields both ways
 //   J3: TrafficLightControl -- 8s phases, alternating main road / cross street
 //
 // Every road is a pair of one-way lanes, so this is real two-way traffic,

@@ -21,8 +21,13 @@ using NodeId = StrongId<struct NodeTag>;
 using EdgeId = StrongId<struct EdgeTag>;
 
 using VehicleId = StrongId<struct VehicleTag>;
-using TrafficLightId = StrongId<struct TrafficLightTag>;
 
+// TODO: check if we need:
+// using JunctionId = StrongId<struct JunctionTag>;
+// using TrafficLightId = StrongId<struct TrafficLightTag>;
+// using SpawnId = StrongId<struct SpawnTag>;
+
+// TODO: do we need invalid values?
 inline constexpr NodeId kInvalidNode{std::numeric_limits<std::uint32_t>::max()};
 inline constexpr EdgeId kInvalidEdge{std::numeric_limits<std::uint32_t>::max()};
 
