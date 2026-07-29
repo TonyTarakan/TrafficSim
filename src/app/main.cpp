@@ -69,26 +69,26 @@ constexpr ts::NodeId kNodeS3{10};
 
 // Lane ids, grouped by road segment. Every road is two one-way lanes
 // (a proper pair), not a single bidirectional one.
-constexpr ts::EdgeId kLaneW0_J1{0};
-constexpr ts::EdgeId kLaneJ1_J2{1};
-constexpr ts::EdgeId kLaneJ2_J3{2};
-constexpr ts::EdgeId kLaneJ3_E0{3};
-constexpr ts::EdgeId kLaneE0_J3{4};
-constexpr ts::EdgeId kLaneJ3_J2{5};
-constexpr ts::EdgeId kLaneJ2_J1{6};
-constexpr ts::EdgeId kLaneJ1_W0{7};
-constexpr ts::EdgeId kLaneN1_J1{8};
-constexpr ts::EdgeId kLaneJ1_S1{9};
-constexpr ts::EdgeId kLaneS1_J1{10};
-constexpr ts::EdgeId kLaneJ1_N1{11};
-constexpr ts::EdgeId kLaneN2_J2{12};
-constexpr ts::EdgeId kLaneJ2_S2{13};
-constexpr ts::EdgeId kLaneS2_J2{14};
-constexpr ts::EdgeId kLaneJ2_N2{15};
-constexpr ts::EdgeId kLaneN3_J3{16};
-constexpr ts::EdgeId kLaneJ3_S3{17};
-constexpr ts::EdgeId kLaneS3_J3{18};
-constexpr ts::EdgeId kLaneJ3_N3{19};
+constexpr ts::EdgeId kEdgeW0_J1{0};
+constexpr ts::EdgeId kEdgeJ1_J2{1};
+constexpr ts::EdgeId kEdgeJ2_J3{2};
+constexpr ts::EdgeId kEdgeJ3_E0{3};
+constexpr ts::EdgeId kEdgeE0_J3{4};
+constexpr ts::EdgeId kEdgeJ3_J2{5};
+constexpr ts::EdgeId kEdgeJ2_J1{6};
+constexpr ts::EdgeId kEdgeJ1_W0{7};
+constexpr ts::EdgeId kEdgeN1_J1{8};
+constexpr ts::EdgeId kEdgeJ1_S1{9};
+constexpr ts::EdgeId kEdgeS1_J1{10};
+constexpr ts::EdgeId kEdgeJ1_N1{11};
+constexpr ts::EdgeId kEdgeN2_J2{12};
+constexpr ts::EdgeId kEdgeJ2_S2{13};
+constexpr ts::EdgeId kEdgeS2_J2{14};
+constexpr ts::EdgeId kEdgeJ2_N2{15};
+constexpr ts::EdgeId kEdgeN3_J3{16};
+constexpr ts::EdgeId kEdgeJ3_S3{17};
+constexpr ts::EdgeId kEdgeS3_J3{18};
+constexpr ts::EdgeId kEdgeJ3_N3{19};
 
 //                         N1              N2              N3
 //                         |               |               |
@@ -126,32 +126,32 @@ std::vector<ts::Edge> make_demo_lanes()
 
     return {
         // Main road, both directions, straight through J1/J2/J3.
-        {.id = kLaneW0_J1, .from = kNodeW0, .to = kNodeJ1, .length = 150.f, .speed_limit = kMainSpeed, .lane_count = 2},
-        {.id = kLaneJ1_J2, .from = kNodeJ1, .to = kNodeJ2, .length = 300.f, .speed_limit = kMainSpeed, .lane_count = 2},
-        {.id = kLaneJ2_J3, .from = kNodeJ2, .to = kNodeJ3, .length = 300.f, .speed_limit = kMainSpeed, .lane_count = 2},
-        {.id = kLaneJ3_E0, .from = kNodeJ3, .to = kNodeE0, .length = 150.f, .speed_limit = kMainSpeed, .lane_count = 2},
-        {.id = kLaneE0_J3, .from = kNodeE0, .to = kNodeJ3, .length = 150.f, .speed_limit = kMainSpeed, .lane_count = 2},
-        {.id = kLaneJ3_J2, .from = kNodeJ3, .to = kNodeJ2, .length = 300.f, .speed_limit = kMainSpeed, .lane_count = 2},
-        {.id = kLaneJ2_J1, .from = kNodeJ2, .to = kNodeJ1, .length = 300.f, .speed_limit = kMainSpeed, .lane_count = 2},
-        {.id = kLaneJ1_W0, .from = kNodeJ1, .to = kNodeW0, .length = 150.f, .speed_limit = kMainSpeed, .lane_count = 2},
+        {.id = kEdgeW0_J1, .from = kNodeW0, .to = kNodeJ1, .length = 150.f, .speed_limit = kMainSpeed, .lane_count = 2},
+        {.id = kEdgeJ1_J2, .from = kNodeJ1, .to = kNodeJ2, .length = 300.f, .speed_limit = kMainSpeed, .lane_count = 2},
+        {.id = kEdgeJ2_J3, .from = kNodeJ2, .to = kNodeJ3, .length = 300.f, .speed_limit = kMainSpeed, .lane_count = 2},
+        {.id = kEdgeJ3_E0, .from = kNodeJ3, .to = kNodeE0, .length = 150.f, .speed_limit = kMainSpeed, .lane_count = 2},
+        {.id = kEdgeE0_J3, .from = kNodeE0, .to = kNodeJ3, .length = 150.f, .speed_limit = kMainSpeed, .lane_count = 2},
+        {.id = kEdgeJ3_J2, .from = kNodeJ3, .to = kNodeJ2, .length = 300.f, .speed_limit = kMainSpeed, .lane_count = 2},
+        {.id = kEdgeJ2_J1, .from = kNodeJ2, .to = kNodeJ1, .length = 300.f, .speed_limit = kMainSpeed, .lane_count = 2},
+        {.id = kEdgeJ1_W0, .from = kNodeJ1, .to = kNodeW0, .length = 150.f, .speed_limit = kMainSpeed, .lane_count = 2},
 
         // Cross street at J1 -- unregulated.
-        {.id = kLaneN1_J1, .from = kNodeN1, .to = kNodeJ1, .length = 180.f, .speed_limit = kCrossSpeed},
-        {.id = kLaneJ1_S1, .from = kNodeJ1, .to = kNodeS1, .length = 180.f, .speed_limit = kCrossSpeed},
-        {.id = kLaneS1_J1, .from = kNodeS1, .to = kNodeJ1, .length = 180.f, .speed_limit = kCrossSpeed},
-        {.id = kLaneJ1_N1, .from = kNodeJ1, .to = kNodeN1, .length = 180.f, .speed_limit = kCrossSpeed},
+        {.id = kEdgeN1_J1, .from = kNodeN1, .to = kNodeJ1, .length = 180.f, .speed_limit = kCrossSpeed},
+        {.id = kEdgeJ1_S1, .from = kNodeJ1, .to = kNodeS1, .length = 180.f, .speed_limit = kCrossSpeed},
+        {.id = kEdgeS1_J1, .from = kNodeS1, .to = kNodeJ1, .length = 180.f, .speed_limit = kCrossSpeed},
+        {.id = kEdgeJ1_N1, .from = kNodeJ1, .to = kNodeN1, .length = 180.f, .speed_limit = kCrossSpeed},
 
         // Cross street at J2 -- yields to the main road.
-        {.id = kLaneN2_J2, .from = kNodeN2, .to = kNodeJ2, .length = 180.f, .speed_limit = kCrossSpeed},
-        {.id = kLaneJ2_S2, .from = kNodeJ2, .to = kNodeS2, .length = 180.f, .speed_limit = kCrossSpeed},
-        {.id = kLaneS2_J2, .from = kNodeS2, .to = kNodeJ2, .length = 180.f, .speed_limit = kCrossSpeed},
-        {.id = kLaneJ2_N2, .from = kNodeJ2, .to = kNodeN2, .length = 180.f, .speed_limit = kCrossSpeed},
+        {.id = kEdgeN2_J2, .from = kNodeN2, .to = kNodeJ2, .length = 180.f, .speed_limit = kCrossSpeed},
+        {.id = kEdgeJ2_S2, .from = kNodeJ2, .to = kNodeS2, .length = 180.f, .speed_limit = kCrossSpeed},
+        {.id = kEdgeS2_J2, .from = kNodeS2, .to = kNodeJ2, .length = 180.f, .speed_limit = kCrossSpeed},
+        {.id = kEdgeJ2_N2, .from = kNodeJ2, .to = kNodeN2, .length = 180.f, .speed_limit = kCrossSpeed},
 
         // Cross street at J3 -- traffic light.
-        {.id = kLaneN3_J3, .from = kNodeN3, .to = kNodeJ3, .length = 180.f, .speed_limit = kCrossSpeed},
-        {.id = kLaneJ3_S3, .from = kNodeJ3, .to = kNodeS3, .length = 180.f, .speed_limit = kCrossSpeed},
-        {.id = kLaneS3_J3, .from = kNodeS3, .to = kNodeJ3, .length = 180.f, .speed_limit = kCrossSpeed},
-        {.id = kLaneJ3_N3, .from = kNodeJ3, .to = kNodeN3, .length = 180.f, .speed_limit = kCrossSpeed},
+        {.id = kEdgeN3_J3, .from = kNodeN3, .to = kNodeJ3, .length = 180.f, .speed_limit = kCrossSpeed},
+        {.id = kEdgeJ3_S3, .from = kNodeJ3, .to = kNodeS3, .length = 180.f, .speed_limit = kCrossSpeed},
+        {.id = kEdgeS3_J3, .from = kNodeS3, .to = kNodeJ3, .length = 180.f, .speed_limit = kCrossSpeed},
+        {.id = kEdgeJ3_N3, .from = kNodeJ3, .to = kNodeN3, .length = 180.f, .speed_limit = kCrossSpeed},
     };
 }
 
@@ -159,25 +159,25 @@ std::vector<ts::Junction> make_demo_junctions()
 {
     ts::Junction j1{};
     j1.node_id = kNodeJ1;
-    j1.incoming = {kLaneW0_J1, kLaneJ2_J1, kLaneN1_J1, kLaneS1_J1};
+    j1.incoming = {kEdgeW0_J1, kEdgeJ2_J1, kEdgeN1_J1, kEdgeS1_J1};
     j1.control = ts::UnregulatedControl{};
 
     ts::Junction j2{};
     j2.node_id = kNodeJ2;
-    j2.incoming = {kLaneJ1_J2, kLaneJ3_J2, kLaneN2_J2, kLaneS2_J2};
+    j2.incoming = {kEdgeJ1_J2, kEdgeJ3_J2, kEdgeN2_J2, kEdgeS2_J2};
     // Main-road through traffic (from J1 or from J3) has priority; the
     // cross street yields to both directions of it.
     j2.control = ts::PriorityControl{.yields_to = {
-                                         {kLaneN2_J2, {kLaneJ1_J2, kLaneJ3_J2}},
-                                         {kLaneS2_J2, {kLaneJ1_J2, kLaneJ3_J2}},
+                                         {kEdgeN2_J2, {kEdgeJ1_J2, kEdgeJ3_J2}},
+                                         {kEdgeS2_J2, {kEdgeJ1_J2, kEdgeJ3_J2}},
                                      }};
 
     ts::Junction j3{};
     j3.node_id = kNodeJ3;
-    j3.incoming = {kLaneJ2_J3, kLaneE0_J3, kLaneN3_J3, kLaneS3_J3};
+    j3.incoming = {kEdgeJ2_J3, kEdgeE0_J3, kEdgeN3_J3, kEdgeS3_J3};
     j3.control = ts::TrafficLightControl{.phases = {
-                                             {.green_lanes = {kLaneJ2_J3, kLaneE0_J3}, .duration = 8.f},
-                                             {.green_lanes = {kLaneN3_J3, kLaneS3_J3}, .duration = 8.f},
+                                             {.green_lanes = {kEdgeJ2_J3, kEdgeE0_J3}, .duration = 8.f},
+                                             {.green_lanes = {kEdgeN3_J3, kEdgeS3_J3}, .duration = 8.f},
                                          }};
 
     return {j1, j2, j3};
@@ -321,7 +321,7 @@ int main(int /*argc*/, char** /*argv*/)
         SDL_SetRenderDrawColor(sdl_renderer, 30, 30, 30, 255);
         SDL_RenderClear(sdl_renderer);
 
-        renderer.draw_lanes(nodes, lanes, camera);
+        renderer.draw_edges(nodes, lanes, camera);
         renderer.draw_junctions(nodes, lanes, junctions_for_render, camera);
         renderer.draw_vehicles(snapshot.vehicles, nodes, lanes, camera);
 

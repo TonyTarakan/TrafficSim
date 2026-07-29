@@ -17,12 +17,12 @@ class Renderer {
 public:
     explicit Renderer(SDL_Renderer* sdl_renderer) : sdl_renderer_(sdl_renderer) {}
 
-    void draw_lanes(std::span<const Node> nodes, std::span<const Edge> lanes, const Camera& camera);
+    void draw_edges(std::span<const Node> nodes, std::span<const Edge> edges, const Camera& camera);
 
     void draw_vehicles(std::span<const Vehicle> vehicles, std::span<const Node> nodes, std::span<const Edge> lanes,
                        const Camera& camera);
 
-    void draw_junctions(std::span<const Node> nodes, std::span<const Edge> lanes, std::span<const Junction> junctions,
+    void draw_junctions(std::span<const Node> nodes, std::span<const Edge> edges, std::span<const Junction> junctions,
                         const Camera& camera);
 
 private:

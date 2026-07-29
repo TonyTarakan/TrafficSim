@@ -148,9 +148,9 @@ void SimEngine::tick()
     pool_.parallel_for(
         [&](std::size_t begin, std::size_t end) {
             for (std::size_t i = begin; i < end; ++i) {
-                const Edge* cur_lane = find_edge(vehicles_[i].edge_id);
-                if (cur_lane) {  // TODO: is it OK when the vehicle is out of lane?
-                    junction_leaders[i] = leader_to_yield(vehicles_[i], *cur_lane, junctions_, vehicles_, *graph_);
+                const Edge* cur_edge = find_edge(vehicles_[i].edge_id);
+                if (cur_edge) {  // TODO: is it OK when the vehicle is out of lane?
+                    junction_leaders[i] = leader_to_yield(vehicles_[i], *cur_edge, junctions_, vehicles_, *graph_);
                 }
             }
         },
@@ -184,16 +184,16 @@ void SimEngine::tick()
         },
         vehicles_.size());
 
-    // --- lane transitions: advance along the route when a lane ends ---
+    // --- edge transitions: advance along the route when a edge ends ---
     // Runs after IDM integration (needs this tick's updated offset to know
-    // whether we've actually run off the end of the current lane).
+    // whether we've actually run off the end of the current edge).
     pool_.parallel_for(
         [&](std::size_t begin, std::size_t end) {
             for (std::size_t i = begin; i < end; ++i) {
                 Vehicle& v = vehicles_[i];
                 const Edge* cur_edge = find_edge(v.edge_id);
                 if (!cur_edge || v.offset <= cur_edge->length) {
-                    continue;  // still within the current lane, nothing to do
+                    continue;  // still within the current edge, nothing to do
                 }
 
                 float overflow = v.offset - cur_edge->length;
@@ -206,12 +206,12 @@ void SimEngine::tick()
                     ++v.route_idx;
                 }
 
-                if (v.route.empty()) continue;  // stay put at the lane's end
+                if (v.route.empty()) continue;  // stay put at the edge's end
 
                 v.edge_id = v.route[v.route_idx];
                 v.offset = overflow;
 
-                // Forced merge: if the new lane has fewer sublanes than our
+                // Forced merge: if the new edge has fewer sublanes than our
                 // current index allows, clamp into range. This is a hard merge,
                 // not a negotiated one -- MOBIL doesn't yet look ahead to an
                 // upcoming lane-count reduction, so vehicles don't proactively

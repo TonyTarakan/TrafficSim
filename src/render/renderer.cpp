@@ -130,7 +130,7 @@ struct overloaded : Ts... {
 
 }  // namespace
 
-void Renderer::draw_lanes(std::span<const Node> nodes, std::span<const Edge> lanes, const Camera& camera)
+void Renderer::draw_edges(std::span<const Node> nodes, std::span<const Edge> lanes, const Camera& camera)
 {
     SDL_SetRenderDrawColor(sdl_renderer_, 90, 90, 90, 255);
 

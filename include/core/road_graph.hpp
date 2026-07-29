@@ -8,7 +8,7 @@
 #include "core/types.hpp"
 #include "core/vec2d.hpp"
 
-// Road network primitives: nodes, lanes, and the graph connecting them.
+// Road network primitives: nodes, edges, lanes and the graph connecting them.
 // Supports multi-level interchanges via elevation (z) on nodes.
 
 namespace ts {
@@ -43,8 +43,8 @@ struct Edge {
 
 // Adjacency list over Lane objects.
 // A* pathfinding.
-// Owns Lane and Node data
-class RoadGraph {
+// Owns Edge and Node data
+class RoadGraph final {
 public:
     RoadGraph(std::vector<Node> nodes, std::vector<Edge> edges);
 
@@ -52,8 +52,8 @@ public:
     [[nodiscard]] const Node& get_node(NodeId id) const;
     [[nodiscard]] const Edge& get_edge(EdgeId id) const;
 
-    // All lanes leaving a given node.
-    [[nodiscard]] std::span<const EdgeId> outgoing_lanes(NodeId node) const;
+    // All edges leaving a given node.
+    [[nodiscard]] std::span<const EdgeId> outgoing_edges(NodeId node) const;
 
     // The node a edge leads into.
     [[nodiscard]] NodeId destination_node(EdgeId edge) const;
@@ -70,8 +70,8 @@ public:
 
 private:
     // Data
-    std::vector<Node> nodes_;
-    std::vector<Edge> edges_;
+    const std::vector<Node> nodes_;
+    const std::vector<Edge> edges_;
 
     // Quick access indicies
     std::vector<std::uint32_t> outgoing_offsets_;  // размер node_count+1

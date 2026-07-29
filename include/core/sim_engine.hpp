@@ -33,12 +33,12 @@ public:
     // Advance the simulation by one step.
     void tick();
 
-    // Take nodes and lanes ownership
+    // Take nodes and edges ownership
     void set_map(std::vector<Node> nodes, std::vector<Edge> edges);
 
     // TODO: resolve dependencies
     // 'set_junctions' requires set_map() to have been called first.
-    // Junction geometry is resolved against the node/lane data.
+    // Junction geometry is resolved against the node/edge data.
     void set_junctions(std::vector<Junction> junctions);
 
     [[nodiscard]] std::optional<std::vector<EdgeId>> compute_route(NodeId src, NodeId dst) const;

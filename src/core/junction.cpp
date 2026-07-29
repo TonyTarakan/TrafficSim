@@ -22,7 +22,7 @@ void JunctionMap::rebuild(std::vector<Junction> junctions, const RoadGraph& grap
 {
     junctions_ = std::move(junctions);
     index_by_node_.clear();
-    index_by_lane_.clear();
+    index_by_edge_.clear();
 
     for (std::size_t i = 0; i < junctions_.size(); ++i) {
         Junction& j = junctions_[i];
@@ -38,7 +38,7 @@ void JunctionMap::rebuild(std::vector<Junction> junctions, const RoadGraph& grap
 
         j.lines_from.clear();
         for (EdgeId lane_id : j.incoming) {
-            index_by_lane_[lane_id] = i;
+            index_by_edge_[lane_id] = i;
             if (lane_id.get() >= graph.edge_count()) {
                 LOG_WARNING(log::get(), "junction {}: unknown lane {}", j.node_id.get(), lane_id.get());
                 continue;
@@ -64,10 +64,10 @@ const Junction* JunctionMap::find_by_node(NodeId node) const
     return &junctions_[it->second];
 }
 
-const Junction* JunctionMap::find_by_lane(EdgeId incoming_lane) const
+const Junction* JunctionMap::find_by_edge(EdgeId incoming_lane) const
 {
-    auto it = index_by_lane_.find(incoming_lane);
-    if (it == index_by_lane_.end()) return nullptr;
+    auto it = index_by_edge_.find(incoming_lane);
+    if (it == index_by_edge_.end()) return nullptr;
 
     return &junctions_[it->second];
 }
@@ -195,33 +195,33 @@ struct overloaded : Ts... {
 
 }  // namespace
 
-std::optional<idm::LeaderInfo> leader_to_yield(const Vehicle& ego, const Edge& ego_lane, const JunctionMap& junctions,
+std::optional<idm::LeaderInfo> leader_to_yield(const Vehicle& ego, const Edge& ego_edge, const JunctionMap& junctions,
                                                std::span<const Vehicle> all_vehicles, const RoadGraph& graph)
 {
-    float distance_to_stop = ego_lane.length - ego.offset;
+    float distance_to_stop = ego_edge.length - ego.offset;
     if (distance_to_stop < 0.f) return std::nullopt;              // already past the line
     if (distance_to_stop > kApproachWindow) return std::nullopt;  // too far away to care
 
-    const Junction* junction = junctions.find_by_lane(ego_lane.id);
+    const Junction* junction = junctions.find_by_edge(ego_edge.id);
     if (!junction) {
         // TODO: maybe UnregulatedControl as default?
-        return std::nullopt;  // this lane doesn't feed a controlled junction
+        return std::nullopt;  // this edge doesn't feed a controlled junction
     }
 
     // clang-format off
     bool must_yield = std::visit(overloaded{
 
         [&](const UnregulatedControl& ) {
-            auto rivals = right_hand_rivals(*junction, ego_lane);
+            auto rivals = right_hand_rivals(*junction, ego_edge);
             return yields_to_rivals(*junction, ego.id, rivals, all_vehicles, graph);
         },
 
         [&](const TrafficLightControl& control) { 
-            return !control.is_green(ego_lane.id); 
+            return !control.is_green(ego_edge.id); 
         },
 
         [&](const PriorityControl& control) {
-            auto it = control.yields_to.find(ego_lane.id);
+            auto it = control.yields_to.find(ego_edge.id);
             if (it == control.yields_to.end()) return false;
             
             return yields_to_rivals(*junction, ego.id, it->second, all_vehicles, graph);

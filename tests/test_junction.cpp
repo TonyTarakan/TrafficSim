@@ -111,10 +111,10 @@ TEST(JunctionMap, FindByNodeAndLane)
     map.rebuild({j}, empty_graph);
 
     EXPECT_EQ(map.find_by_node(NodeId{0})->node_id, NodeId{0});
-    EXPECT_EQ(map.find_by_lane(EdgeId{0})->node_id, NodeId{0});
-    EXPECT_EQ(map.find_by_lane(EdgeId{1})->node_id, NodeId{0});
+    EXPECT_EQ(map.find_by_edge(EdgeId{0})->node_id, NodeId{0});
+    EXPECT_EQ(map.find_by_edge(EdgeId{1})->node_id, NodeId{0});
     EXPECT_EQ(map.find_by_node(NodeId{999}), nullptr);
-    EXPECT_EQ(map.find_by_lane(EdgeId{999}), nullptr);
+    EXPECT_EQ(map.find_by_edge(EdgeId{999}), nullptr);
 }
 
 TEST(JunctionMap, RebuildResolvesGeometryFromNodesAndLanes)

@@ -23,7 +23,7 @@ struct UnregulatedControl {
 
 // Sign-based priority.
 struct PriorityControl {
-    std::unordered_map<EdgeId, std::vector<EdgeId>> yields_to;  // Lane yields to others
+    std::unordered_map<EdgeId, std::vector<EdgeId>> yields_to;  // Edge yields to others
 };
 
 // Only one lane has green light for duration seconds
@@ -40,7 +40,7 @@ struct TrafficLightControl {
 
     // No phases configured => treat as always-green
     // TODO: add support for flashing yellow (unregulated/priority fallback)
-    [[nodiscard]] bool is_green(EdgeId lane) const;
+    [[nodiscard]] bool is_green(EdgeId edge) const;
 };
 
 using JunctionControl = std::variant<UnregulatedControl, PriorityControl, TrafficLightControl>;
@@ -61,7 +61,7 @@ public:
     void rebuild(std::vector<Junction> junctions, const RoadGraph& graph);
 
     [[nodiscard]] const Junction* find_by_node(NodeId node_id) const;
-    [[nodiscard]] const Junction* find_by_lane(EdgeId incoming_lane_id) const;
+    [[nodiscard]] const Junction* find_by_edge(EdgeId incoming_edge_id) const;
 
     // Advance every tick by dt seconds.
     void advance_signals(float dt);
@@ -71,15 +71,15 @@ public:
 private:
     std::vector<Junction> junctions_;
     std::unordered_map<NodeId, std::size_t> index_by_node_;
-    std::unordered_map<EdgeId, std::size_t> index_by_lane_;
+    std::unordered_map<EdgeId, std::size_t> index_by_edge_;
 };
 
 // 'Ego' looks at the upcoming junction
-// If it must yield, 'ego' imagines a leader at the lane's end.
+// If it must yield, 'ego' imagines a leader at the edge's end.
 // So IDM brakes for it exactly as if it were a stopped leader.
 // nullopt means the way is free.
 [[nodiscard]]
-std::optional<idm::LeaderInfo> leader_to_yield(const Vehicle& ego, const Edge& ego_lane, const JunctionMap& junctions,
+std::optional<idm::LeaderInfo> leader_to_yield(const Vehicle& ego, const Edge& ego_edge, const JunctionMap& junctions,
                                                std::span<const Vehicle> all_vehicles, const RoadGraph& graph);
 
 }  // namespace ts

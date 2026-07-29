@@ -27,14 +27,14 @@ struct Vehicle {
     Vec2D position{};  // TODO: maybe separate Point2D class?
     float speed{0.f};  // m/s, always >= 0
 
-    // TODO: Do ew need a separate lane_id?
+    // TODO: Do we need to have separate Lane struct
     // We should always have a route(even while parking)
     EdgeId edge_id{};  // Which road segment the vehicle is on.
 
     // How far are we from the lane's start.
     float offset{0.f};  // m
 
-    // Parallel sub-lane within the segment (0 = rightmost).
+    // Parallel sub-lane within the Edge (0 = rightmost).
     // MOBIL works between them, IDM works per sublane
     int sublane_idx{0};
 
@@ -42,8 +42,8 @@ struct Vehicle {
     // Without this, MOBIL can cause lane change every tick.
     float lane_change_cooldown{1.f};
 
-    // Sequence of lanes to follow
-    // route[route_idx] must always equal lane_id (kept in sync by tick()).
+    // Sequence of edges to follow
+    // route[route_idx] must always equal edge_id (kept in sync by tick()).
     std::vector<EdgeId> route{};
     std::size_t route_idx{0};
 };

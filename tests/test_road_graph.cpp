@@ -89,7 +89,7 @@ TEST(RoadGraph, RebuildPopulatesAdjacency)
     auto [nodes, lanes] = make_square();
     RoadGraph g{nodes, lanes};
 
-    auto out = g.outgoing_lanes(NodeId{0});
+    auto out = g.outgoing_edges(NodeId{0});
     ASSERT_EQ(out.size(), 1u);
     EXPECT_EQ(out[0], EdgeId{0});  // lane 0 leaves node 0
 }
@@ -100,7 +100,7 @@ TEST(RoadGraph, SinkNodeHasEmptyOutgoing)
     lanes.pop_back();  // remove lane 3 -> 0, so node 3 becomes a dead end
     RoadGraph g{nodes, lanes};
 
-    EXPECT_TRUE(g.outgoing_lanes(NodeId{3}).empty());
+    EXPECT_TRUE(g.outgoing_edges(NodeId{3}).empty());
 }
 
 TEST(RoadGraph, LaneEndNodeIsCorrect)

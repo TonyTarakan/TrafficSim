@@ -62,7 +62,7 @@ const Edge& RoadGraph::get_edge(EdgeId id) const
     return edges_[id.get()];
 }
 
-std::span<const EdgeId> RoadGraph::outgoing_lanes(NodeId node) const
+std::span<const EdgeId> RoadGraph::outgoing_edges(NodeId node) const
 {
     if (node.get() >= nodes_.size()) return {};
 
@@ -79,7 +79,7 @@ NodeId RoadGraph::destination_node(EdgeId edge) const
     return edges_[edge.get()].to;
 }
 
-// A* over the lane graph
+// A* over the graph
 //
 // Costs are travel times, not distances
 //
@@ -154,7 +154,7 @@ std::optional<std::vector<EdgeId>> RoadGraph::find_route(NodeId src_id, NodeId d
             continue;
         }
 
-        for (EdgeId edge_id : outgoing_lanes(curr_id)) {
+        for (EdgeId edge_id : outgoing_edges(curr_id)) {
             const Edge& edge = edges_[edge_id.get()];
             NodeId next_id = edge.to;
 
