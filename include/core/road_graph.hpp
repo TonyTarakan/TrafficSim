@@ -43,14 +43,31 @@ struct Edge {
 
 // Adjacency list over Lane objects.
 // A* pathfinding.
-// Owns Edge and Node data
+// Owns Edge and Node data.
+//
+// NodeId/EdgeId MUST be dense array indices: nodes[i].id == i and
+// edges[i].id == i. That's what lets every lookup below be a raw array
+// access instead of a hash lookup -- the only producer of Node/Edge data
+// today is hand-authored (main.cpp), which already assigns ids this way.
+// The constructor enforces it and throws std::invalid_argument otherwise,
+// so a violation fails loud at construction, not silently later.
+//
+// If a real external source ever needs non-dense ids (OSM import, a map
+// editor with deletions), that's the right place to remap to dense ids
+// before handing data to RoadGraph -- not something every lookup here
+// should pay for until it's actually needed. osm_importer.hpp is parked
+// as a far-future stub for exactly this reason; revisit this decision
+// once it's real.
 class RoadGraph final {
 public:
     RoadGraph(std::vector<Node> nodes, std::vector<Edge> edges);
 
-    // Read-only access
+    // Read-only access. Throws std::out_of_range if the id isn't in this graph.
     [[nodiscard]] const Node& get_node(NodeId id) const;
     [[nodiscard]] const Edge& get_edge(EdgeId id) const;
+
+    [[nodiscard]] bool has_node(NodeId id) const noexcept { return id.get() < nodes_.size(); }
+    [[nodiscard]] bool has_edge(EdgeId id) const noexcept { return id.get() < edges_.size(); }
 
     // All edges leaving a given node.
     [[nodiscard]] std::span<const EdgeId> outgoing_edges(NodeId node) const;
@@ -69,7 +86,7 @@ public:
     [[nodiscard]] std::optional<std::vector<EdgeId>> find_route(NodeId src_id, NodeId dst_id) const;
 
 private:
-    // Data
+    // Data. Position i MUST hold the entity with id == i (see class comment).
     const std::vector<Node> nodes_;
     const std::vector<Edge> edges_;
 

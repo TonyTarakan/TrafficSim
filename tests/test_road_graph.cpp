@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include <stdexcept>
+
 #include "core/road_graph.hpp"
 #include "core/types.hpp"
 
@@ -181,4 +183,69 @@ TEST(RoadGraph, FindRouteUnreachableReturnsNullopt)
     // Node 3 is still reachable from 0, but nothing leads back to 0 from 3.
     auto route = g.find_route(NodeId{3}, NodeId{0});
     EXPECT_FALSE(route.has_value());
+}
+
+TEST(RoadGraph, NonDenseNodeIdThrowsAtConstruction)
+{
+    // Ids that don't match storage position (0,1,2,...) violate the
+    // dense id == index contract RoadGraph relies on for O(1) raw-array
+    // lookups. This also covers duplicates and OSM-style sparse ids --
+    // any of them will desync id from position somewhere.
+    std::vector<Node> nodes = {
+        {.id = NodeId{0}, .pos = {.x = 0.f, .y = 0.f}},
+        {.id = NodeId{5}, .pos = {.x = 100.f, .y = 0.f}},  // should be NodeId{1}
+    };
+    EXPECT_THROW(RoadGraph(nodes, {}), std::invalid_argument);
+}
+
+TEST(RoadGraph, DuplicateNodeIdThrows)
+{
+    std::vector<Node> nodes = {
+        {.id = NodeId{1}, .pos = {.x = 0.f, .y = 0.f}},
+        {.id = NodeId{1}, .pos = {.x = 100.f, .y = 0.f}},  // same id as above, and neither matches its position
+    };
+    EXPECT_THROW(RoadGraph(nodes, {}), std::invalid_argument);
+}
+
+TEST(RoadGraph, NonDenseEdgeIdThrowsAtConstruction)
+{
+    auto [nodes, edges] = make_square();
+    edges[1].id = EdgeId{99};  // no longer matches its position (1)
+    EXPECT_THROW(RoadGraph(nodes, edges), std::invalid_argument);
+}
+
+TEST(RoadGraph, EdgeToUnknownNodeThrows)
+{
+    std::vector<Node> nodes = {{.id = NodeId{0}, .pos = {.x = 0.f, .y = 0.f}}};
+    std::vector<Edge> edges = {
+        {.id = EdgeId{0}, .from = NodeId{0}, .to = NodeId{999}, .length = 10.f, .speed_limit = 10.f},  // no such node
+    };
+    EXPECT_THROW(RoadGraph(nodes, edges), std::invalid_argument);
+}
+
+TEST(RoadGraph, GetNodeThrowsForUnknownId)
+{
+    auto [nodes, edges] = make_square();
+    RoadGraph g{nodes, edges};
+
+    EXPECT_THROW((void)g.get_node(NodeId{999}), std::out_of_range);
+}
+
+TEST(RoadGraph, GetEdgeThrowsForUnknownId)
+{
+    auto [nodes, edges] = make_square();
+    RoadGraph g{nodes, edges};
+
+    EXPECT_THROW((void)g.get_edge(EdgeId{999}), std::out_of_range);
+}
+
+TEST(RoadGraph, HasNodeAndHasEdgeReflectMembership)
+{
+    auto [nodes, edges] = make_square();
+    RoadGraph g{nodes, edges};
+
+    EXPECT_TRUE(g.has_node(NodeId{0}));
+    EXPECT_FALSE(g.has_node(NodeId{999}));
+    EXPECT_TRUE(g.has_edge(EdgeId{0}));
+    EXPECT_FALSE(g.has_edge(EdgeId{999}));
 }

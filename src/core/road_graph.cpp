@@ -7,6 +7,7 @@
 #include <cmath>
 #include <format>
 #include <queue>
+#include <stdexcept>
 
 #include "core/types.hpp"
 
@@ -20,6 +21,35 @@ RoadGraph::RoadGraph(std::vector<Node> nodes, std::vector<Edge> edges)
 
 void RoadGraph::build_indices()
 {
+    // Enforce the dense id == index contract (see class comment in the
+    // header) -- fail loud here instead of build_indices() below silently
+    // writing into the wrong out_degree/outgoing_edges_ slot, or worse,
+    // out of bounds if an id is >= size().
+    for (std::uint32_t i = 0; i < nodes_.size(); ++i) {
+        if (nodes_[i].id.get() != i) {
+            throw std::invalid_argument(
+                std::format("RoadGraph: node at position {} has id {}, expected dense id == index", i,
+                            nodes_[i].id.get()));
+        }
+    }
+    for (std::uint32_t i = 0; i < edges_.size(); ++i) {
+        if (edges_[i].id.get() != i) {
+            throw std::invalid_argument(
+                std::format("RoadGraph: edge at position {} has id {}, expected dense id == index", i,
+                            edges_[i].id.get()));
+        }
+    }
+    for (const auto& edge : edges_) {
+        if (edge.from.get() >= nodes_.size()) {
+            throw std::invalid_argument(
+                std::format("RoadGraph: edge {} has unknown from-node {}", edge.id.get(), edge.from.get()));
+        }
+        if (edge.to.get() >= nodes_.size()) {
+            throw std::invalid_argument(
+                std::format("RoadGraph: edge {} has unknown to-node {}", edge.id.get(), edge.to.get()));
+        }
+    }
+
     const std::size_t node_cnt = nodes_.size();
 
     // Подсчёт исходящих сегментов для каждого узла
@@ -44,7 +74,6 @@ void RoadGraph::build_indices()
     }
 }
 
-// TODO: handle or throw?
 const Node& RoadGraph::get_node(NodeId id) const
 {
     if (id.get() >= nodes_.size()) {
@@ -53,11 +82,10 @@ const Node& RoadGraph::get_node(NodeId id) const
     return nodes_[id.get()];
 }
 
-// TODO: handle or throw?
 const Edge& RoadGraph::get_edge(EdgeId id) const
 {
     if (id.get() >= edges_.size()) {
-        throw std::out_of_range(std::format("Invalid EdgeId in RoadGraph::get_edge {} {} ", id.get(), nodes_.size()));
+        throw std::out_of_range(std::format("Invalid EdgeId in RoadGraph::get_edge {} {} ", id.get(), edges_.size()));
     }
     return edges_[id.get()];
 }
@@ -100,13 +128,12 @@ std::optional<std::vector<EdgeId>> RoadGraph::find_route(NodeId src_id, NodeId d
     auto curr_h_cost = [&](NodeId node_id) -> float {
         constexpr float kOptimisticTopSpeed = 33.f;  // TODO: maybe default param?
 
-        // Check both exist
-        if (node_id.get() >= nodes_.size() || dst_id.get() >= nodes_.size()) {
+        if (!has_node(node_id) || !has_node(dst_id)) {
             return 0.f;
         }
 
-        const Node& n = nodes_[node_id.get()];
-        const Node& d = nodes_[dst_id.get()];
+        const Node& n = get_node(node_id);
+        const Node& d = get_node(dst_id);
         Vec2D delta = n.pos - d.pos;
         return std::sqrt(delta.length_sq()) / kOptimisticTopSpeed;
     };
@@ -155,7 +182,7 @@ std::optional<std::vector<EdgeId>> RoadGraph::find_route(NodeId src_id, NodeId d
         }
 
         for (EdgeId edge_id : outgoing_edges(curr_id)) {
-            const Edge& edge = edges_[edge_id.get()];
+            const Edge& edge = get_edge(edge_id);
             NodeId next_id = edge.to;
 
             constexpr float kMinSpeed = 0.1f;
