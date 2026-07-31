@@ -14,12 +14,12 @@ struct Destination {
 
 struct SpawnPoint {
     NodeId origin;
-    std::vector<Destination> destinations;
+
     float spawn_rate{1.f};  // vehicles per second
+
     // TODO(later):
     // - VehicleType distribution
-    // - start_time;
-    // - end_time;
+    // - Destination distribution
 };
 
 // TODO
@@ -37,5 +37,6 @@ private:
 // - spawn+despawn logic
 // - config
 // - random destination
+// - random vehicle
 
 }  // namespace ts

@@ -9,6 +9,7 @@
 
 namespace ts {
 
+// TODO: maybe refactor or ns move
 [[nodiscard]] idm::VehicleParams default_params(VehicleType type) noexcept;
 
 }  // namespace ts
