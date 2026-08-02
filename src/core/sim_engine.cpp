@@ -4,12 +4,12 @@
 
 #include <algorithm>
 #include <limits>
-#include <random>
 
 #include "core/idm.hpp"
 #include "core/junction.hpp"
 #include "core/lane_change.hpp"
 #include "core/log.hpp"
+#include "core/random.hpp"
 #include "core/types.hpp"
 
 namespace ts {
@@ -37,15 +37,6 @@ std::optional<idm::LeaderInfo> find_leader(const Vehicle& ego, std::span<const V
     }
 
     return best;
-}
-
-// TODO: remove code duplication
-float generate_rand(float from, float to)
-{
-    thread_local std::mt19937 rng{std::random_device{}()};
-    std::uniform_real_distribution<float> dist{from, to};
-
-    return dist(rng);
 }
 
 }  // namespace

@@ -7,13 +7,13 @@
 #include <quill/LogMacros.h>
 
 #include <print>
-#include <random>
 #include <thread>
 #include <utility>
 #include <vector>
 
 #include "core/junction.hpp"
 #include "core/log.hpp"
+#include "core/random.hpp"
 #include "core/road_graph.hpp"
 #include "core/sim_engine.hpp"
 #include "core/types.hpp"
@@ -183,16 +183,6 @@ std::vector<ts::Junction> make_demo_junctions()
     return {j1, j2, j3};
 }
 
-// TODO: remove code duplication
-float generate_rand(float from, float to)
-{
-    static std::random_device rd;
-    static std::mt19937 rng{rd()};  // генератор
-    std::uniform_real_distribution<float> dist{from, to};
-
-    return dist(rng);
-}
-
 // Spawns 'count' vehicles at the start of the route from 'origin_node' to
 // 'dest_node', spread out nose-to-tail so they don't start overlapping.
 void spawn_stream(ts::SimEngine& engine, ts::NodeId origin_node, ts::NodeId dest_node, ts::VehicleId id_start,
@@ -206,7 +196,7 @@ void spawn_stream(ts::SimEngine& engine, ts::NodeId origin_node, ts::NodeId dest
     }
 
     for (int i = 0; i < count; ++i) {
-        float random_speed = generate_rand(5.0f, 10.0f);
+        float random_speed = ts::generate_rand(5.0f, 10.0f);
 
         ts::Vehicle v{
             .id = static_cast<ts::VehicleId>(id_start.get() + i),
